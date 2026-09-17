@@ -1,0 +1,17 @@
+{
+  "line_items": [
+    { "ref": "1", "allowed_amount": 320.00, "patient_responsibility": 1180.00 },
+    { "ref": "2", "allowed_amount": 8.00, "patient_responsibility": 37.00 },
+    { "ref": "3", "allowed_amount": 180.00, "patient_responsibility": 0.00 },
+    { "ref": "4", "allowed_amount": 110.00, "patient_responsibility": 0.00 }
+  ],
+  "denials": [
+    {
+      "line_item_ref": "1",
+      "carc_code": "45",
+      "rarc_code": "N822",
+      "group_code": "CO",
+      "adjustment_amount": 0.00
+    }
+  ]
+}

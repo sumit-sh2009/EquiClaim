@@ -1,0 +1,1 @@
+"""EquiClaim backend application package."""

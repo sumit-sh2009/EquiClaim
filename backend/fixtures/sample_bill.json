@@ -1,0 +1,44 @@
+{
+  "line_items": [
+    {
+      "ref": "1",
+      "description": "Emergency department visit level 4",
+      "code": "99284",
+      "units": 1,
+      "billed_amount": 1500.00,
+      "service_date": "2026-01-15",
+      "place_of_service": "23",
+      "is_emergency": true,
+      "is_out_of_network": true
+    },
+    {
+      "ref": "2",
+      "description": "Routine venipuncture",
+      "code": "36415",
+      "units": 1,
+      "billed_amount": 45.00,
+      "service_date": "2026-01-15",
+      "place_of_service": "23",
+      "is_emergency": true,
+      "is_out_of_network": true
+    },
+    {
+      "ref": "3",
+      "description": "Chest X-ray, 2 views",
+      "code": "71046",
+      "units": 1,
+      "billed_amount": 180.00,
+      "service_date": "2026-01-15",
+      "place_of_service": "23"
+    },
+    {
+      "ref": "4",
+      "description": "Chest X-ray, 1 view",
+      "code": "71045",
+      "units": 1,
+      "billed_amount": 110.00,
+      "service_date": "2026-01-15",
+      "place_of_service": "23"
+    }
+  ]
+}

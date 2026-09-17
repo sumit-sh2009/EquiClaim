@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: equiclaim-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: equiclaim
+      POSTGRES_PASSWORD: equiclaim
+      POSTGRES_DB: equiclaim
+    ports:
+      - "5432:5432"
+    volumes:
+      - equiclaim_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U equiclaim -d equiclaim"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: equiclaim-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      EQUICLAIM_DATABASE_URL: postgresql://equiclaim:equiclaim@postgres:5432/equiclaim
+      EQUICLAIM_ENVIRONMENT: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command:
+      [
+        "uv",
+        "run",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    container_name: equiclaim-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+volumes:
+  equiclaim_pgdata:

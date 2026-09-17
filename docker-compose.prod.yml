@@ -1,0 +1,45 @@
+# Production overlay — layer on top of docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Differences from the dev compose file:
+#   - no bind-mounted source (images are immutable, built once)
+#   - backend runs without --reload, frontend is served as a static nginx build
+#   - secrets (DB URL, API keys) are expected to come from the deployment
+#     environment (e.g. a .env.prod file passed via `--env-file`, or a
+#     secrets manager injecting real env vars) — nothing sensitive is baked
+#     into the image.
+services:
+  postgres:
+    restart: always
+    ports: []  # do not expose Postgres publicly in production
+
+  backend:
+    build:
+      context: ./backend
+    restart: always
+    volumes: []
+    command:
+      [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--workers",
+        "2",
+      ]
+    environment:
+      EQUICLAIM_ENVIRONMENT: production
+
+  frontend:
+    build:
+      context: ./frontend
+      target: prod
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    restart: always
+    volumes: []
+    ports:
+      - "80:80"
+    command: []
