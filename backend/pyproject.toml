@@ -1,0 +1,51 @@
+[project]
+name = "equiclaim-backend"
+version = "0.1.0"
+description = "EquiClaim — multi-agent forensic medical-bill audit engine (FastAPI + LangGraph)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "langgraph>=1.0.0",
+    "langgraph-checkpoint-postgres>=2.0.21",
+    "psycopg[binary,pool]>=3.2",
+    "python-multipart>=0.0.12",
+    "orjson>=3.10",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+    "ruff>=0.7",
+    "mypy>=1.13",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008 (function call in default arg) is idiomatic FastAPI (Depends(...)/File(...)/Form(...)).
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]

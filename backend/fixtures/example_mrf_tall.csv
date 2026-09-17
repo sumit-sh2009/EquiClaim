@@ -1,0 +1,8 @@
+code|1,code|1|type,description,standard_charge|gross,standard_charge|discounted_cash,payer_name,plan_name,standard_charge|negotiated_dollar,standard_charge|negotiated_percentage,standard_charge|negotiated_algorithm
+99284,CPT,Emergency department visit level 4,2500.00,1100.00,Acme Health Plan,Gold PPO,320.00,,
+99284,CPT,Emergency department visit level 4,2500.00,1100.00,Beacon Insurance,Silver HMO,300.00,,
+99284,CPT,Emergency department visit level 4,2500.00,1100.00,Concord Mutual,Bronze PPO,340.00,,
+99283,CPT,Emergency department visit level 3,1500.00,650.00,Acme Health Plan,Gold PPO,210.00,,
+36415,CPT,Routine venipuncture,45.00,20.00,Acme Health Plan,Gold PPO,8.00,,
+71046,CPT,Chest X-ray 2 views,180.00,90.00,Acme Health Plan,Gold PPO,45.00,,
+71045,CPT,Chest X-ray 1 view,110.00,55.00,Acme Health Plan,Gold PPO,28.00,,
