@@ -10,7 +10,7 @@ High-contrast Neo-Brutalism. Paper #F8F4E8, ink #09090B, acid yellow-green #D2E8
 
 **CTA:** Hard-shadow button — ink fill, acid text, 16px 32px padding, 12px radius, 2px ink border, shadow 4px 4px 0 #09090B. Hover/click: translate(2px, 2px) and drop the shadow. Active: translateY(4px).
 
-**Motion:** Display words rise in on load. The sample statement scan tracks scroll across three beats. The audit trail draws a vertical rule. Glitch on hover for display text (±2px, 0.3s, infinite). Custom 32px mix-blend-difference cursor that scales 2.5× over links/buttons. SVG noise overlay at 3% opacity. `prefers-reduced-motion` skips the pin and the reveals.
+**Motion:** Display words rise in on load. The sample statement scan tracks scroll across three beats. The audit trail draws a vertical rule. Glitch on hover for display text (±2px, 0.3s, infinite). Use the system pointer (no custom cursor overlay). SVG noise overlay at 3% opacity. `prefers-reduced-motion` skips the pin and the reveals.
 
 **Layout:** Sticky floating nav (16px inset, 90% paper + blur 24px, 2px border, 12px radius). Hero 7/5 grid. Bento with one 2×2 dark card and two 1×1 hard-shadow cards. Horizontal 320px product-style cards for citations. Ink footer with 3 columns + acid submit.
 
