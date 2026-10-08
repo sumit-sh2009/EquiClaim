@@ -9,9 +9,8 @@ This is simultaneously:
   2. **A full Phase 2-5 regression test** — the fixture bill/EOB pair is
      hand-constructed so every invariant should pass on the *first*
      evaluator pass against the ingested `fixtures/example_mrf_tall.csv`
-     data (see `tests/test_mrf_ingestion.py`, which must run first / the
-     hospital must already be ingested — see the `ingested_hospital`
-     fixture below).
+     data. The `ingested_hospital` fixture loads that file when the hospital
+     is not already present.
 
 Requires a live Postgres reachable via `backend/.env` (`EQUICLAIM_DATABASE_URL`).
 """

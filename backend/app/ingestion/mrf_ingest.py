@@ -37,6 +37,9 @@ from app.schemas.cms_mrf import CmsMrfTallChargeSlice
 
 logger = logging.getLogger(__name__)
 
+DEMO_HOSPITAL_CCN = "450123"
+DEMO_HOSPITAL_NAME = "Example Regional Medical Center"
+
 
 @dataclass
 class IngestionReport:
@@ -111,7 +114,7 @@ async def ingest_file(
         if row is not None:
             rows.append(row)
 
-    inserted = await repo.bulk_insert_line_items(rows=rows)
+    inserted = await repo.replace_hospital_line_items(hospital_ccn=hospital_ccn, rows=rows)
     await repo.refresh_qpa_medians()
 
     report = IngestionReport(
@@ -129,6 +132,33 @@ async def ingest_file(
         len(report.errors),
     )
     return report
+
+
+def demo_mrf_path() -> Path:
+    """CMS tall fixture shipped with the repo, used by tests and local demo startup."""
+    return Path(__file__).resolve().parents[2] / "fixtures" / "example_mrf_tall.csv"
+
+
+async def seed_demo_hospital_if_missing(pool: AsyncConnectionPool) -> None:
+    """Load the sample hospital price file once, so CCN 450123 can be audited immediately.
+
+    Development and test startup call this. A hospital row that already exists is left
+    alone, so a later manual ingest is never duplicated.
+    """
+    path = demo_mrf_path()
+    if not path.is_file():
+        logger.warning("demo MRF fixture not found at %s; skipping seed", path)
+        return
+    repo = MrfRepository(pool)
+    if await repo.get_hospital(hospital_ccn=DEMO_HOSPITAL_CCN) is not None:
+        return
+    await ingest_file(
+        pool=pool,
+        hospital_ccn=DEMO_HOSPITAL_CCN,
+        hospital_name=DEMO_HOSPITAL_NAME,
+        file_path=path,
+        mrf_source_url="fixture://example_mrf_tall.csv",
+    )
 
 
 async def _main_async(args: argparse.Namespace) -> None:

@@ -13,6 +13,7 @@ ClaimStatus = Literal[
     "COMPLIANCE_REVIEW",
     "EVALUATING",
     "AWAITING_HUMAN_REVIEW",
+    "RESUMING",
     "CERTIFIED",
     "REJECTED",
     "FAILED",

@@ -1,8 +1,8 @@
 """Unit tests for `ActuarialEvaluatorNode` — no DB required.
 
-Covers the evaluator-optimizer loop's control-flow guarantees directly:
-defect detection + routing, and the graceful (non-`GraphRecursionError`)
-`manual_escalation` exit once `evaluator_max_iterations` is exhausted.
+Covers defect detection and the graceful (non-`GraphRecursionError`)
+`manual_escalation` exit. Workers recompute the same inputs, so a defect
+fails the claim immediately instead of looping.
 """
 
 from __future__ import annotations
@@ -65,9 +65,12 @@ async def test_evaluator_detects_reconciliation_defect_and_routes_to_mrf_worker(
         "eval_iteration": 0,
     }
     result = await node(state)
-    assert result["eval_status"] == "NEEDS_REVISION"
-    assert result["eval_route_hint"] == "mrf_benchmark_worker"
+    assert result["eval_status"] == "FAILED"
+    assert result["eval_route_hint"] == "manual_escalation"
     assert any("RECONCILIATION" in fb for fb in result["eval_feedback"])
+    assert "line_items" not in result
+    assert bad_item.billed_amount_cents == 150_000
+    assert bad_item.patient_responsibility_cents == 118_001
 
 
 @pytest.mark.asyncio
@@ -118,6 +121,7 @@ async def test_evaluator_detects_missing_ncci_finding() -> None:
         "eval_iteration": 0,
     }
     result = await node(state)
-    assert result["eval_status"] == "NEEDS_REVISION"
-    assert result["eval_route_hint"] == "nsa_compliance_worker"
+    assert result["eval_status"] == "FAILED"
+    assert result["eval_route_hint"] == "manual_escalation"
     assert any("NCCI_UNBUNDLING" in fb for fb in result["eval_feedback"])
+    assert col2.billed_amount_cents == 11_000

@@ -3,18 +3,11 @@ evaluator-optimizer reflection loop).
 
 Independently re-verifies every mathematical and statutory invariant the
 mandate requires, **before** a docket is ever allowed to reach the
-Human-in-the-Loop interrupt. On any defect it appends structured feedback to
-`eval_feedback`, increments `eval_iteration`, and sets `eval_route_hint` to
-send control back to the worker responsible for that class of defect:
-
-  - Reconciliation / QPA-cap / provenance defects -> `mrf_benchmark_worker`
-    (bad or missing benchmark data is the most common root cause).
-  - Statutory citation / NCCI-coverage defects -> `nsa_compliance_worker`.
-
-If `eval_iteration` reaches `evaluator_max_iterations` (mandate: 3) without
-reaching `CERTIFIED`, the loop is broken deliberately and gracefully —
-`eval_status` is forced to `FAILED` and `eval_route_hint` points at
-`manual_escalation`, never at raising `GraphRecursionError`. The graph's
+Human-in-the-Loop interrupt. On any defect it appends structured feedback to `eval_feedback` and routes
+to `manual_escalation` with `eval_status` `FAILED`. The benchmark and
+compliance workers recompute the same documents, so sending the claim back
+cannot change the cents that failed. `evaluator_max_iterations` (mandate: 3)
+remains the wording used once that cap is already reached. The graph's
 `recursion_limit` config (default 50, see `Settings.graph_recursion_limit`)
 remains as an independent, coarser backstop beneath this app-level cap, and
 `remaining_steps` (LangGraph's own managed channel) provides a third,
@@ -230,17 +223,21 @@ def build_evaluator_node(*, max_iterations: int):
                 f"[iteration {iteration}] CERTIFIED — all mathematical and statutory "
                 "invariants passed."
             ]
-        elif iteration >= max_iterations:
+        else:
+            # Same inputs produce the same amounts. Stop instead of looping.
             status = "FAILED"
             route_hint = "manual_escalation"
-            feedback = [
-                f"[iteration {iteration}] FAILED — evaluator_max_iterations ({max_iterations}) "
-                f"reached with {len(all_defects)} unresolved defect(s): " + "; ".join(all_defects)
-            ]
-        else:
-            status = "NEEDS_REVISION"
-            route_hint = "mrf_benchmark_worker" if math_defects else "nsa_compliance_worker"
-            feedback = [f"[iteration {iteration}] NEEDS_REVISION ({route_hint}): {d}" for d in all_defects]
+            if iteration >= max_iterations:
+                feedback = [
+                    f"[iteration {iteration}] FAILED — evaluator_max_iterations ({max_iterations}) "
+                    f"reached with {len(all_defects)} unresolved defect(s): "
+                    + "; ".join(all_defects)
+                ]
+            else:
+                feedback = [
+                    f"[iteration {iteration}] FAILED — {len(all_defects)} defect(s) cannot be "
+                    "repaired by re-running a worker: " + "; ".join(all_defects)
+                ]
 
         logger.info(
             "actuarial_evaluator_node: claim=%s iteration=%d status=%s route=%s defects=%d",

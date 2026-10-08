@@ -2,16 +2,14 @@
 
 ```
 START -> intake_forensic_worker -> mrf_benchmark_worker -> nsa_compliance_worker
-      -> actuarial_evaluator_node --(math defect)--> mrf_benchmark_worker
-                                  --(statute defect)--> nsa_compliance_worker
-                                  --(CERTIFIED)--> finalize_docket --> END
-                                  --(iteration >= max)--> manual_escalation --> END
+      -> actuarial_evaluator_node --(CERTIFIED)--> finalize_docket --> END
+                                  --(any defect)--> manual_escalation --> END
 ```
 
 There is no separate top-level "Orchestrator" node: `START` sequences the
-three workers directly (the orchestration *is* the static graph topology),
-and `ActuarialEvaluatorNode` acts as both evaluator and re-router, which is
-the standard LangGraph Evaluator-Optimizer shape. `finalize_docket` is the
+three workers directly (the orchestration *is* the static graph topology).
+A defect does not return to a worker: those workers recompute the same
+documents, so the evaluator stops at `manual_escalation`. `finalize_docket` is the
 sole `interrupt_before` target for the Human-in-the-Loop breakpoint.
 
 `intake_forensic_worker` and `nsa_compliance_worker` are pure functions of
@@ -26,6 +24,8 @@ from __future__ import annotations
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import RetryPolicy
+from psycopg import InterfaceError, OperationalError
 from psycopg_pool import AsyncConnectionPool
 
 from app.core.config import Settings
@@ -43,13 +43,21 @@ NODE_EVALUATOR = "actuarial_evaluator_node"
 NODE_FINALIZE = "finalize_docket"
 NODE_ESCALATE = "manual_escalation"
 
+# The benchmark node is the only worker that talks to Postgres. Retry a dropped
+# connection; do not retry validation or programming errors.
+_MRF_RETRY = RetryPolicy(
+    initial_interval=0.2,
+    max_attempts=3,
+    retry_on=lambda exc: isinstance(exc, (OperationalError, InterfaceError)),
+)
+
 
 def build_graph(*, pool: AsyncConnectionPool, settings: Settings) -> StateGraph:
     """Construct (but do not compile) the EquiClaim `StateGraph`."""
     graph = StateGraph(EquiClaimState)
 
     graph.add_node(NODE_INTAKE, intake_forensic_worker)
-    graph.add_node(NODE_MRF_BENCHMARK, build_mrf_benchmark_worker(pool))
+    graph.add_node(NODE_MRF_BENCHMARK, build_mrf_benchmark_worker(pool), retry_policy=_MRF_RETRY)
     graph.add_node(NODE_NSA_COMPLIANCE, nsa_compliance_worker)
     graph.add_node(
         NODE_EVALUATOR, build_evaluator_node(max_iterations=settings.evaluator_max_iterations)

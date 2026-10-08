@@ -13,19 +13,32 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import get_settings
+from app.core.config import get_settings, refuse_default_secrets
 from app.core.logging import RequestContextMiddleware, configure_logging
 from app.db.migrate import run_migrations
 from app.db.pool import open_database_resources
 from app.graph.graph import compile_graph
+from app.ingestion.mrf_ingest import seed_demo_hospital_if_missing
+from app.repositories.claims_repository import ClaimsRepository
 from app.routers import claims
 
 logger = logging.getLogger(__name__)
+
+# JSON responses never need a browser document policy. The SPA's CSP lives on nginx.
+_API_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "Cache-Control": "no-store",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
+    refuse_default_secrets(settings)
 
     # Application schema (tenants/claims/mrf_line_items/...) — separate from,
     # and applied before, the LangGraph checkpoint tables.
@@ -40,6 +53,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.graph = compile_graph(
             pool=resources.pool, checkpointer=resources.checkpointer, settings=settings
         )
+        if settings.environment in ("development", "test"):
+            await seed_demo_hospital_if_missing(resources.pool)
+        orphaned = await ClaimsRepository(resources.pool).fail_orphaned_runs()
+        if orphaned:
+            logger.warning("marked %d in-flight claims FAILED after restart", orphaned)
         logger.info(
             "EquiClaim backend ready (environment=%s, evaluator_max_iterations=%d)",
             settings.environment,
@@ -51,6 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(environment=settings.environment)
+    publish_docs = settings.environment in {"development", "test"}
     app = FastAPI(
         title="EquiClaim",
         description=(
@@ -59,16 +78,25 @@ def create_app() -> FastAPI:
         ),
         version="0.1.0",
         lifespan=lifespan,
+        docs_url="/docs" if publish_docs else None,
+        redoc_url="/redoc" if publish_docs else None,
+        openapi_url="/openapi.json" if publish_docs else None,
     )
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allow_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Tenant-Id", "X-Request-Id"],
     )
     app.add_middleware(RequestContextMiddleware)
+
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next):  # noqa: ARG001
+        response = await call_next(request)
+        response.headers.update(_API_SECURITY_HEADERS)
+        return response
 
     app.include_router(claims.router)
 

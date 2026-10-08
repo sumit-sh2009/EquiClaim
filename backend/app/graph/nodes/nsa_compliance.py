@@ -122,7 +122,10 @@ def _ncci_unbundling_findings(
                 continue
             # The component (column2) code is the one improperly billed as separate.
             component_item = item_b if edit.column2_code == item_b.cpt_hcpcs_code else item_a
-            disputed = component_item.allowed_amount_cents or component_item.billed_amount_cents
+            allowed = component_item.allowed_amount_cents
+            # ``0`` is a real allowed amount. A truthiness check would dispute
+            # the full billed charge after the payer already adjusted it to zero.
+            disputed = component_item.billed_amount_cents if allowed is None else allowed
             findings.append(
                 ComplianceFinding(
                     finding_id=_finding_id(

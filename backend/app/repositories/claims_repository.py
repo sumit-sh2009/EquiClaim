@@ -81,6 +81,43 @@ class ClaimsRepository:
             rows = await cur.fetchall()
             return [ClaimRow(**row) for row in rows]
 
+    async def begin_resume(self, *, claim_id: str, tenant_id: str) -> bool:
+        """Claim the HITL resume. Only one caller can move the row to ``RESUMING``.
+
+        The graph snapshot can still say ``AWAITING_HUMAN_REVIEW`` for both
+        overlapping requests. The row update is the lock.
+        """
+        async with self._pool.connection() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                UPDATE claims
+                SET status = 'RESUMING', updated_at = now()
+                WHERE claim_id = %(claim_id)s
+                  AND tenant_id = %(tenant_id)s
+                  AND status NOT IN ('RESUMING', 'CERTIFIED', 'REJECTED', 'FAILED')
+                """,
+                {"claim_id": claim_id, "tenant_id": tenant_id},
+            )
+            return cur.rowcount == 1
+
+    async def fail_orphaned_runs(self) -> int:
+        """Mark in-flight rows FAILED. A restart cannot finish a dead process's graph run.
+
+        ``AWAITING_HUMAN_REVIEW`` is a valid pause and is left alone, as are
+        terminal rows.
+        """
+        async with self._pool.connection() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                UPDATE claims
+                SET status = 'FAILED', updated_at = now()
+                WHERE status IN (
+                    'INTAKE', 'BENCHMARKING', 'COMPLIANCE_REVIEW', 'EVALUATING', 'RESUMING'
+                )
+                """
+            )
+            return cur.rowcount
+
     async def update_status(self, *, claim_id: str, status: ClaimStatus) -> None:
         async with self._pool.connection() as conn, conn.cursor() as cur:
             await cur.execute(

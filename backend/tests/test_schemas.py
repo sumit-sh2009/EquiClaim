@@ -281,3 +281,20 @@ def test_audit_docket_accepts_reconciled_totals() -> None:
         dispute_notice_text="Formal dispute notice text.",
     )
     assert docket.total_disputed_cents == 5_000
+
+
+def test_line_item_finding_rejects_dispute_above_billed() -> None:
+    with pytest.raises(ValidationError, match="billed_amount_cents"):
+        LineItemFinding(
+            line_item=make_line_item(billed_amount_cents=25_000),
+            mrf_benchmark=MRFBenchmark(
+                benchmark_id="b_1",
+                hospital_ccn="450123",
+                cpt_hcpcs_code="99284",
+                code_type="CPT",
+                median_negotiated_cents=20_000,
+                source_file_url="https://example.org/mrf.json",
+                source_publish_date=date(2026, 1, 1),
+            ),
+            disputed_amount_cents=25_001,
+        )

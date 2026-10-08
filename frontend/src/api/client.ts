@@ -12,6 +12,16 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000
 const BEARER_TOKEN = import.meta.env.VITE_API_BEARER_TOKEN ?? 'dev-shared-secret-change-me'
 const TENANT_ID = import.meta.env.VITE_TENANT_ID ?? 'demo-tenant'
 
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const detail = err.response?.data?.detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail) && typeof detail[0]?.msg === 'string') return detail[0].msg
+  }
+  if (err instanceof Error && err.message) return err.message
+  return fallback
+}
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {

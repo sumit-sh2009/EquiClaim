@@ -7,6 +7,7 @@ tenant's claim through the `/claims` API, even with a valid credential.
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from pathlib import Path
 
@@ -14,9 +15,9 @@ import pytest
 from fastapi.testclient import TestClient
 from psycopg_pool import AsyncConnectionPool
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings, refuse_default_secrets
 from app.core.security import hash_api_key
-from app.main import app
+from app.main import app, create_app
 from app.repositories.claims_repository import ClaimsRepository
 from app.repositories.tenant_keys_repository import TenantApiKeyRepository
 
@@ -124,3 +125,51 @@ async def test_tenant_api_key_hash_lookup_and_revocation(pool: AsyncConnectionPo
 
     await keys_repo.revoke_key(key_id=key_id)
     assert await keys_repo.resolve_tenant_for_key(hash_api_key(raw_key)) is None
+
+
+def test_api_key_hash_is_peppered() -> None:
+    digest = hash_api_key("raw-key")
+    assert digest != hashlib.sha256(b"raw-key").hexdigest()
+    assert digest == hash_api_key("raw-key")
+
+
+def test_api_responses_send_security_headers(client: TestClient) -> None:
+    expected = {
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+        "cache-control": "no-store",
+        "content-security-policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+    }
+    ok = client.get("/healthz")
+    denied = client.get("/claims")
+    assert ok.status_code == 200
+    assert denied.status_code == 401
+    for resp in (ok, denied):
+        for name, value in expected.items():
+            assert resp.headers[name] == value
+
+
+def test_production_hides_api_docs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("EQUICLAIM_ENVIRONMENT", "production")
+    monkeypatch.setenv("EQUICLAIM_API_SHARED_SECRET", "prod-secret-not-default")
+    monkeypatch.setenv("EQUICLAIM_API_KEY_PEPPER", "prod-pepper-not-default")
+    get_settings.cache_clear()
+    try:
+        prod = create_app()
+        assert prod.docs_url is None
+        assert prod.redoc_url is None
+        assert prod.openapi_url is None
+    finally:
+        get_settings.cache_clear()
+
+
+def test_production_refuses_default_secrets() -> None:
+    settings = Settings(
+        environment="production",
+        api_shared_secret="dev-shared-secret-change-me",
+        api_key_pepper="dev-api-key-pepper-change-me",
+    )
+    with pytest.raises(RuntimeError, match="EQUICLAIM_API_SHARED_SECRET"):
+        refuse_default_secrets(settings)

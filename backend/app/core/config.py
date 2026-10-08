@@ -12,6 +12,9 @@ from functools import lru_cache
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_DEV_SHARED_SECRET = "dev-shared-secret-change-me"
+_DEV_API_KEY_PEPPER = "dev-api-key-pepper-change-me"
+
 
 class Settings(BaseSettings):
     """Process-wide settings, sourced from environment / `.env`."""
@@ -43,14 +46,41 @@ class Settings(BaseSettings):
 
     # --- App ---
     environment: str = Field(default="development")
-    cors_allow_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
-    upload_dir: str = Field(default="./data/uploads")
-
-    # --- Auth (Phase 8 stub — see app/core/security.py) ---
-    api_shared_secret: str = Field(
-        default="dev-shared-secret-change-me",
-        description="Placeholder bearer token for local/dev tenant auth (Phase 8 hardens this).",
+    cors_allow_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
+    upload_dir: str = Field(default="./data/uploads")
+    upload_max_bytes: int = Field(default=2_000_000, ge=1)
+
+    # --- Auth (see app/core/security.py) ---
+    api_shared_secret: str = Field(
+        default=_DEV_SHARED_SECRET,
+        description=(
+            "Shared bearer token for development and test. Refused outside those "
+            "environments; production resolves a peppered HMAC-SHA256 per-tenant API key."
+        ),
+    )
+    api_key_pepper: str = Field(
+        default=_DEV_API_KEY_PEPPER,
+        description=(
+            "Server-side pepper for tenant API key hashes. Refused at its default "
+            "outside development and test. Changing it invalidates stored key hashes."
+        ),
+    )
+
+
+def refuse_default_secrets(settings: Settings) -> None:
+    """Refuse the shipped secret and pepper outside development and test."""
+    if settings.environment in {"development", "test"}:
+        return
+    missing: list[str] = []
+    if settings.api_shared_secret == _DEV_SHARED_SECRET:
+        missing.append("EQUICLAIM_API_SHARED_SECRET")
+    if settings.api_key_pepper == _DEV_API_KEY_PEPPER:
+        missing.append("EQUICLAIM_API_KEY_PEPPER")
+    if missing:
+        names = " and ".join(missing)
+        raise RuntimeError(f"refusing to start: set {names} outside development and test")
 
 
 @lru_cache

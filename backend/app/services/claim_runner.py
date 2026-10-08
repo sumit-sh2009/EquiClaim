@@ -65,7 +65,13 @@ class StatusSnapshot:
 
 
 async def run_claim_graph(
-    *, graph: Any, thread_id: str, initial_state: dict[str, Any], settings: Any
+    *,
+    graph: Any,
+    thread_id: str,
+    initial_state: dict[str, Any],
+    settings: Any,
+    claims_repo: ClaimsRepository,
+    claim_id: str,
 ) -> None:
     """Kick off a brand-new claim audit run (invoked as a background task)."""
     config = {**_thread_config(thread_id), "recursion_limit": settings.graph_recursion_limit}
@@ -73,6 +79,7 @@ async def run_claim_graph(
         await graph.ainvoke(initial_state, config)
     except Exception:  # noqa: BLE001 - surfaced via status polling, not re-raised to caller
         logger.exception("claim run failed for thread_id=%s", thread_id)
+        await claims_repo.update_status(claim_id=claim_id, status="FAILED")
 
 
 async def resume_claim_graph(
@@ -84,13 +91,13 @@ async def resume_claim_graph(
     notes: str | None,
     settings: Any,
     claims_repo: ClaimsRepository,
-) -> None:
+    claim_id: str,
+) -> bool:
     """Resume a claim paused at the `finalize_docket` HITL interrupt.
 
-    After `finalize_docket` runs (a pure function of graph state — see its
-    module docstring for why it has no DB access of its own), the resulting
-    `audit_docket` is read back out of the checkpointed state and persisted
-    to the `audit_dockets` table here, at the orchestration boundary.
+    Returns True only after the docket row is saved. The caller sets
+    ``CERTIFIED`` or ``REJECTED`` from the checkpoint after that. A failure
+    leaves the claim ``FAILED`` and does not report a decision.
     """
     config = {**_thread_config(thread_id), "recursion_limit": settings.graph_recursion_limit}
     await graph.aupdate_state(
@@ -101,10 +108,15 @@ async def resume_claim_graph(
         await graph.ainvoke(None, config)
         final_state = await graph.aget_state(config)
         docket = final_state.values.get("audit_docket") if final_state else None
-        if docket is not None:
-            await claims_repo.save_docket(docket=docket)
+        if docket is None:
+            await claims_repo.update_status(claim_id=claim_id, status="FAILED")
+            return False
+        await claims_repo.save_docket(docket=docket)
+        return True
     except Exception:  # noqa: BLE001
         logger.exception("claim resume failed for thread_id=%s", thread_id)
+        await claims_repo.update_status(claim_id=claim_id, status="FAILED")
+        return False
 
 
 async def get_status_snapshot(*, graph: Any, thread_id: str) -> StatusSnapshot | None:
