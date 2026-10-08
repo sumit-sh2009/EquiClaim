@@ -2,6 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { HardShadowButton } from '@/components/ui/hard-shadow-button'
 
+const SUPPORT_EMAIL = 'sumit.shawsh2009@gmail.com'
+const GITHUB_PROFILE = 'https://github.com/sumit-sh2009'
+const GITHUB_REPO = 'https://github.com/sumit-sh2009/EquiClaim'
+
 const FOOTER_NAV = [
   { href: '/upload', label: 'New audit' },
   { href: '/claims', label: 'Ledger' },
@@ -10,19 +14,16 @@ const FOOTER_NAV = [
   { href: '/#security', label: 'Security' },
 ] as const
 
-const FOOTER_CONTACT = [
-  { label: 'Email', value: 'hello@equiclaim.local', href: 'mailto:hello@equiclaim.local' },
-  { label: 'Subject', value: 'Docket alerts' },
-] as const
-
 export function SiteFooter() {
   const [email, setEmail] = useState('')
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
-    const subject = encodeURIComponent('Docket alerts')
-    const body = encodeURIComponent(`Please send docket alerts to ${email}`)
-    window.location.href = `mailto:hello@equiclaim.local?subject=${subject}&body=${body}`
+    const subject = encodeURIComponent('EquiClaim — support')
+    const body = encodeURIComponent(
+      `Hi Sumit,\n\nPlease get back to me at ${email}.\n\n`,
+    )
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
   }
 
   return (
@@ -32,8 +33,14 @@ export function SiteFooter() {
           <div className="min-w-0 md:col-span-4">
             <p className="font-heading text-3xl tracking-tighter">EquiClaim</p>
             <p className="mt-4 max-w-xs font-sans text-sm font-normal normal-case tracking-normal text-ink-muted">
-              Forensic audit engine for hospital bills. CMS price files, 45 CFR § 149, NCCI edits —
-              then a human signs the docket.
+              Forensic audit engine for hospital bills. Built by{' '}
+              <a
+                href={GITHUB_PROFILE}
+                className="text-ink-foreground underline decoration-audit-on-ink underline-offset-4 hover:text-audit-on-ink"
+              >
+                Sumit Shaw
+              </a>
+              . CMS price files, 45 CFR § 149, NCCI edits — then a human signs the docket.
             </p>
           </div>
           <div className="min-w-0 md:col-span-2">
@@ -47,36 +54,42 @@ export function SiteFooter() {
             </nav>
           </div>
           <div className="min-w-0 md:col-span-3">
-            <p className="font-mono text-xs tracking-widest text-audit-on-ink uppercase">Contact</p>
+            <p className="font-mono text-xs tracking-widest text-audit-on-ink uppercase">Support</p>
             <ul className="mt-4 flex flex-col gap-3 text-sm">
-              {FOOTER_CONTACT.map((item) => (
-                <li key={item.label}>
-                  <span className="font-mono text-xs tracking-widest text-ink-muted uppercase">{item.label}</span>
-                  {'href' in item ? (
-                    <a href={item.href} className="mt-1 block break-words font-heading tracking-wider uppercase hover:text-audit-on-ink">
-                      {item.value}
-                    </a>
-                  ) : (
-                    <p className="mt-1 font-heading tracking-wider uppercase">{item.value}</p>
-                  )}
-                </li>
-              ))}
+              <li>
+                <span className="font-mono text-xs tracking-widest text-ink-muted uppercase">Email</span>
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="mt-1 block break-all font-heading text-sm tracking-wider uppercase hover:text-audit-on-ink"
+                >
+                  {SUPPORT_EMAIL}
+                </a>
+              </li>
+              <li>
+                <span className="font-mono text-xs tracking-widest text-ink-muted uppercase">Maker</span>
+                <p className="mt-1 font-heading tracking-wider uppercase">Sumit Shaw</p>
+              </li>
             </ul>
           </div>
           <div className="min-w-0 md:col-span-3">
             <p className="font-mono text-xs tracking-widest text-audit-on-ink uppercase">Social</p>
             <nav aria-label="Social" className="mt-4 flex flex-col gap-3 font-heading text-sm tracking-wider uppercase">
-              <a href="mailto:hello@equiclaim.local" className="hover:text-audit-on-ink">
+              <a href={GITHUB_PROFILE} className="hover:text-audit-on-ink">
+                GitHub
+              </a>
+              <a href={GITHUB_REPO} className="hover:text-audit-on-ink">
+                Source
+              </a>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-audit-on-ink">
                 Email
               </a>
-              <span className="text-ink-muted">CMS · NSA · NCCI</span>
             </nav>
           </div>
         </div>
 
         <form onSubmit={onSubmit} className="mt-16 flex flex-col gap-3 sm:flex-row sm:items-stretch">
           <label className="sr-only" htmlFor="docket-email">
-            Email for docket alerts
+            Your email — opens a message to support
           </label>
           <input
             id="docket-email"
@@ -84,20 +97,21 @@ export function SiteFooter() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@firm.com"
+            placeholder="your email — I’ll write back"
             className="min-h-14 flex-1 border-2 border-ink-foreground bg-transparent px-4 font-sans text-ink-foreground placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-audit-on-ink"
           />
           <HardShadowButton
             type="submit"
             className="bg-accent text-accent-foreground shadow-[4px_4px_0_0_var(--accent)] hover:shadow-none"
           >
-            Subscribe
+            Write to me
           </HardShadowButton>
         </form>
 
-        <p className="mt-12 font-mono text-xs tracking-widest text-ink-muted uppercase">
-          Dockets are decision-support — not legal advice.
-        </p>
+        <div className="mt-12 flex flex-col gap-2 font-mono text-xs tracking-widest text-ink-muted uppercase sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} Sumit Shaw. Built in public.</p>
+          <p>Dockets are decision-support — not legal advice.</p>
+        </div>
       </div>
     </footer>
   )
