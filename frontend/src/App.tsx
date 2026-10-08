@@ -3,7 +3,6 @@ import { Suspense, lazy, useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { SiteFooter } from '@/components/site/SiteFooter'
 import { SiteHeader } from '@/components/site/SiteHeader'
-import { AcidCursor } from '@/components/ui/acid-cursor'
 import { NoiseTexture } from '@/components/ui/noise-texture'
 import { SpeederLoader } from '@/components/ui/speeder-loader'
 import { LandingPage } from '@/pages/LandingPage'
@@ -51,7 +50,6 @@ function App() {
     <div className="relative flex min-h-screen flex-col bg-background">
       <HashScroll />
       <NoiseTexture className="fixed inset-0 z-[1] opacity-[0.03]" />
-      <AcidCursor />
       <SiteHeader />
       <main id="main-content" className="flex-1">
         <AnimatePresence mode="wait" initial={false}>

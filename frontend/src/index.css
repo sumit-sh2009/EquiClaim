@@ -339,10 +339,6 @@
     background-color: var(--void);
     scroll-padding-top: 7rem;
   }
-  html.has-acid-cursor,
-  html.has-acid-cursor * {
-    cursor: none;
-  }
   h1,
   h2,
   .font-heading {
@@ -391,10 +387,6 @@
     .animate-shimmer {
       animation: none !important;
       opacity: 0 !important;
-    }
-    html.has-acid-cursor,
-    html.has-acid-cursor * {
-      cursor: auto;
     }
   }
 }
