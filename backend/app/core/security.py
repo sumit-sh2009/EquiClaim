@@ -26,8 +26,9 @@ from app.repositories.tenant_keys_repository import TenantApiKeyRepository
 
 
 def hash_api_key(raw_key: str) -> str:
-    """SHA-256 hash of a raw API key — never store raw keys at rest."""
-    return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+    """Peppered HMAC-SHA256 of a raw API key. Raw keys are never stored."""
+    pepper = get_settings().api_key_pepper.encode("utf-8")
+    return hmac.new(pepper, raw_key.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 async def require_tenant(

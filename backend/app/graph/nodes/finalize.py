@@ -72,13 +72,21 @@ def _assemble_line_item_findings(
     line_item_findings: list[LineItemFinding] = []
     for item in line_items:
         item_findings = findings_by_item.get(item.line_item_id, [])
-        disputed_total = sum(f.disputed_amount_cents for f in item_findings)
+        # One line, one theory: the largest finding, never a stack, and never
+        # more than the hospital billed.
+        if item_findings:
+            chosen = max(item_findings, key=lambda finding: finding.disputed_amount_cents)
+            disputed_total = min(chosen.disputed_amount_cents, item.billed_amount_cents)
+            compliance_finding: ComplianceFinding | None = chosen
+        else:
+            disputed_total = 0
+            compliance_finding = None
         line_item_findings.append(
             LineItemFinding(
                 line_item=item,
                 denial_mapping=next(iter(denials_by_item.get(item.line_item_id, [])), None),
                 mrf_benchmark=benchmarks_by_code.get(item.cpt_hcpcs_code or ""),
-                compliance_finding=item_findings[0] if item_findings else None,
+                compliance_finding=compliance_finding,
                 disputed_amount_cents=disputed_total,
             )
         )
@@ -97,6 +105,8 @@ def _build_audit_docket(state: EquiClaimState, *, decision: str) -> AuditDocket:
     total_billed = sum(item.billed_amount_cents for item in line_items)
     total_disputed = sum(lif.disputed_amount_cents for lif in line_item_findings)
     statutory_citations = sorted({f.citation for f in findings})
+    certified = state.get("eval_status") == "CERTIFIED"
+    iteration = state.get("eval_iteration") or 1
 
     dispute_notice_text = render_dispute_notice(
         claim_id=claim_id,
@@ -116,8 +126,8 @@ def _build_audit_docket(state: EquiClaimState, *, decision: str) -> AuditDocket:
         total_disputed_cents=total_disputed,
         statutory_citations=statutory_citations,
         evaluator_certification=EvaluatorCertification(
-            iteration_count=state.get("eval_iteration", 1),
-            passed_checks=_PASSED_CHECKS,
+            iteration_count=max(int(iteration), 1),
+            passed_checks=list(_PASSED_CHECKS) if certified else [],
             certified_at=now,
         ),
         human_approval=HumanApproval(

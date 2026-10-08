@@ -36,6 +36,10 @@ class LineItemFinding(BaseModel):
     def disputed_amount_must_trace_to_evidence(self) -> LineItemFinding:
         if self.disputed_amount_cents < 0:
             raise ValueError("disputed_amount_cents must be >= 0")
+        if self.disputed_amount_cents > self.line_item.billed_amount_cents:
+            raise ValueError(
+                "disputed_amount_cents cannot exceed the line's billed_amount_cents"
+            )
         no_evidence = self.denial_mapping is None and self.mrf_benchmark is None
         if self.disputed_amount_cents > 0 and no_evidence:
             raise ValueError(
@@ -99,4 +103,6 @@ class AuditDocket(BaseModel):
             )
         if self.total_billed_cents < 0 or self.total_disputed_cents < 0:
             raise ValueError("totals must be >= 0")
+        if self.total_disputed_cents > self.total_billed_cents:
+            raise ValueError("total_disputed_cents cannot exceed total_billed_cents")
         return self

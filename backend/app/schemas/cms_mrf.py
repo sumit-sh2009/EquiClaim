@@ -13,9 +13,12 @@ Regulation: https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-E/part-1
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.domain.money import dollars_to_cents
 
 CodeType = Literal[
     "CPT",
@@ -65,13 +68,13 @@ class CmsMrfTallChargeSlice(BaseModel):
     code_1_type: CodeType | None = Field(default=None, alias="code|1|type")
     description: str | None = Field(default=None, alias="description")
 
-    standard_charge_gross: float | None = Field(default=None, alias="standard_charge|gross")
-    standard_charge_discounted_cash: float | None = Field(
+    standard_charge_gross: Decimal | None = Field(default=None, alias="standard_charge|gross")
+    standard_charge_discounted_cash: Decimal | None = Field(
         default=None, alias="standard_charge|discounted_cash"
     )
     payer_name: str | None = None
     plan_name: str | None = None
-    standard_charge_negotiated_dollar: float | None = Field(
+    standard_charge_negotiated_dollar: Decimal | None = Field(
         default=None, alias="standard_charge|negotiated_dollar"
     )
     standard_charge_negotiated_percentage: float | None = Field(
@@ -101,8 +104,6 @@ class CmsMrfTallChargeSlice(BaseModel):
             raise ValueError("code|1 and code|1|type must be encoded together")
         return self
 
-    def to_cents(self, value: float | None) -> int | None:
-        """Convert a CMS dollar float to integer cents (round-half-up, banker-safe)."""
-        if value is None:
-            return None
-        return round(value * 100)
+    def to_cents(self, value: Decimal | None) -> int | None:
+        """Convert a CMS dollar amount to integer cents (half-up)."""
+        return dollars_to_cents(value)

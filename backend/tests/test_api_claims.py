@@ -12,12 +12,14 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import psycopg
 import pytest
 from fastapi.testclient import TestClient
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 from app.core.config import get_settings
+from app.db.migrate import run_migrations
 from app.ingestion.mrf_ingest import ingest_file
 from app.main import app
 from app.repositories.mrf_repository import MrfRepository
@@ -33,6 +35,7 @@ AUTH_HEADERS = {
 
 async def _ensure_hospital_ingested() -> None:
     settings = get_settings()
+    await run_migrations(settings.database_url)
     async with AsyncConnectionPool(
         conninfo=settings.database_url,
         min_size=1,
@@ -131,6 +134,104 @@ def test_double_resume_is_conflict(client: TestClient) -> None:
         f"/claims/{claim_id}/resume", headers=AUTH_HEADERS, json={"decision": "APPROVED"}
     )
     assert second_resume.status_code == 409
+
+
+def test_create_claim_rejects_unsupported_file(client: TestClient) -> None:
+    resp = client.post(
+        "/claims",
+        headers=AUTH_HEADERS,
+        files=[("files", ("bill.pdf", b"%PDF-1.4", "application/pdf"))],
+        data={"document_types": ["BILL"], "hospital_ccn": HOSPITAL_CCN},
+    )
+    assert resp.status_code == 400, resp.text
+    assert ".json or .txt" in resp.json()["detail"]
+
+
+def test_create_claim_unknown_hospital_is_400(client: TestClient) -> None:
+    bill_bytes = (FIXTURES / "sample_bill.json").read_bytes()
+    resp = client.post(
+        "/claims",
+        headers=AUTH_HEADERS,
+        files=[("files", ("sample_bill.json", bill_bytes, "application/json"))],
+        data={"document_types": ["BILL"], "hospital_ccn": "999999"},
+    )
+    assert resp.status_code == 400, resp.text
+    assert "price file" in resp.json()["detail"]
+
+
+def test_upload_rejects_path_escape(client: TestClient) -> None:
+    bill_bytes = (FIXTURES / "sample_bill.json").read_bytes()
+    for name in ("../outside.json", "/tmp/outside.json"):
+        resp = client.post(
+            "/claims",
+            headers=AUTH_HEADERS,
+            files=[("files", (name, bill_bytes, "application/json"))],
+            data={"document_types": ["BILL"], "hospital_ccn": HOSPITAL_CCN},
+        )
+        assert resp.status_code == 400, resp.text
+
+
+def test_upload_rejects_oversized_body(client: TestClient) -> None:
+    settings = get_settings()
+    previous = settings.upload_max_bytes
+    settings.upload_max_bytes = 32
+    try:
+        resp = client.post(
+            "/claims",
+            headers=AUTH_HEADERS,
+            files=[("files", ("bill.json", b"x" * 33, "application/json"))],
+            data={"document_types": ["BILL"], "hospital_ccn": HOSPITAL_CCN},
+        )
+        assert resp.status_code == 413, resp.text
+    finally:
+        settings.upload_max_bytes = previous
+
+
+def test_json_uploaded_as_text_plain_still_parses(client: TestClient) -> None:
+    bill_bytes = (FIXTURES / "sample_bill.json").read_bytes()
+    eob_bytes = (FIXTURES / "sample_eob.json").read_bytes()
+    create_resp = client.post(
+        "/claims",
+        headers=AUTH_HEADERS,
+        files=[
+            ("files", ("sample_bill.json", bill_bytes, "text/plain")),
+            ("files", ("sample_eob.json", eob_bytes, "text/plain")),
+        ],
+        data={"document_types": ["BILL", "EOB"], "hospital_ccn": HOSPITAL_CCN},
+    )
+    assert create_resp.status_code == 202, create_resp.text
+    claim_id = create_resp.json()["claim_id"]
+    status_resp = client.get(f"/claims/{claim_id}/status", headers=AUTH_HEADERS)
+    assert status_resp.json()["status"] == "AWAITING_HUMAN_REVIEW"
+    docket_resp = client.get(f"/claims/{claim_id}/docket", headers=AUTH_HEADERS)
+    assert docket_resp.status_code == 200, docket_resp.text
+    docket = docket_resp.json()
+    assert docket["total_billed_cents"] == 150_000 + 4_500 + 18_000 + 11_000
+    assert docket["human_approval"]["decision"] == "PENDING"
+    assert docket["evaluator_certification"]["passed_checks"]
+
+
+def test_resume_lock_rejects_overlapping_call(client: TestClient) -> None:
+    bill_bytes = (FIXTURES / "sample_bill.json").read_bytes()
+    eob_bytes = (FIXTURES / "sample_eob.json").read_bytes()
+    create_resp = client.post(
+        "/claims",
+        headers=AUTH_HEADERS,
+        files=[
+            ("files", ("sample_bill.json", bill_bytes, "application/json")),
+            ("files", ("sample_eob.json", eob_bytes, "application/json")),
+        ],
+        data={"document_types": ["BILL", "EOB"], "hospital_ccn": HOSPITAL_CCN},
+    )
+    claim_id = create_resp.json()["claim_id"]
+    with psycopg.connect(get_settings().database_url, autocommit=True) as conn:
+        conn.execute("UPDATE claims SET status = 'RESUMING' WHERE claim_id = %s", (claim_id,))
+    resume_resp = client.post(
+        f"/claims/{claim_id}/resume",
+        headers=AUTH_HEADERS,
+        json={"decision": "APPROVED"},
+    )
+    assert resume_resp.status_code == 409, resume_resp.text
 
 
 def test_resume_unknown_claim_is_not_found(client: TestClient) -> None:

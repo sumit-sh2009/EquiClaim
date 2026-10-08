@@ -101,6 +101,55 @@ class MrfRepository:
             )
         return len(rows)
 
+    async def replace_hospital_line_items(
+        self, *, hospital_ccn: str, rows: list[dict[str, object]]
+    ) -> int:
+        """Replace one hospital's rates in a single transaction, then return the new count.
+
+        A second ingest must not leave the previous payer rows in place. Those
+        duplicates move the QPA median. The materialized view is refreshed by
+        the caller after this transaction commits — ``REFRESH ... CONCURRENTLY``
+        cannot run inside it.
+        """
+        async with self._pool.connection() as conn:
+            async with conn.transaction():
+                async with conn.cursor() as cur:
+                    await cur.execute(
+                        "DELETE FROM mrf_line_items WHERE hospital_ccn = %(hospital_ccn)s",
+                        {"hospital_ccn": hospital_ccn},
+                    )
+                    if rows:
+                        await cur.executemany(
+                            """
+                            INSERT INTO mrf_line_items (
+                                hospital_ccn, cpt_hcpcs_code, code_type, description,
+                                gross_charge_cents, discounted_cash_cents, payer_name, plan_name,
+                                negotiated_dollar_cents, negotiated_percentage, negotiated_algorithm,
+                                source_publish_date
+                            ) VALUES (
+                                %(hospital_ccn)s, %(cpt_hcpcs_code)s, %(code_type)s, %(description)s,
+                                %(gross_charge_cents)s, %(discounted_cash_cents)s,
+                                %(payer_name)s, %(plan_name)s,
+                                %(negotiated_dollar_cents)s, %(negotiated_percentage)s,
+                                %(negotiated_algorithm)s, %(source_publish_date)s
+                            )
+                            """,
+                            rows,
+                        )
+        return len(rows)
+
+    async def count_line_items(self, *, hospital_ccn: str) -> int:
+        async with self._pool.connection() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT count(*) AS n FROM mrf_line_items
+                WHERE hospital_ccn = %(hospital_ccn)s
+                """,
+                {"hospital_ccn": hospital_ccn},
+            )
+            row = await cur.fetchone()
+            return int(row["n"]) if row else 0
+
     async def refresh_qpa_medians(self) -> None:
         """Recompute the materialized median view after an ingestion batch."""
         async with self._pool.connection() as conn, conn.cursor() as cur:

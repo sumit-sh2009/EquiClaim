@@ -1,0 +1,82 @@
+/*
+ * Brutalist shadow input — adapted from Uiverse.io by 0xnihilism.
+ * Shake, blink caret, typing, and glitch animations omitted by request.
+ */
+
+.brutalist-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.brutalist-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 4.5rem;
+  padding: 1rem;
+  font-size: 1.375rem;
+  font-family: var(--font-mono);
+  color: var(--card-foreground);
+  background-color: var(--card);
+  border: 3px solid var(--border);
+  border-radius: 0.75rem;
+  outline: none;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+  box-shadow: var(--hard);
+  letter-spacing: 0.08em;
+}
+
+.brutalist-input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.brutalist-input:hover:not(:disabled):not(:focus) {
+  box-shadow: var(--hard-lg);
+}
+
+.brutalist-input:focus {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), var(--hard);
+}
+
+.brutalist-input:focus::placeholder {
+  color: var(--muted-foreground);
+}
+
+.brutalist-input:not(:placeholder-shown) {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.brutalist-input--invalid {
+  border-color: var(--audit);
+  box-shadow: 8px 8px 0 var(--audit);
+}
+
+.brutalist-input--invalid:focus {
+  background-color: var(--audit);
+  color: var(--audit-foreground);
+  border-color: color-mix(in oklch, var(--audit-foreground) 40%, white);
+}
+
+.brutalist-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brutalist-input {
+    transition-duration: 0.01ms;
+  }
+
+  .brutalist-input:hover:not(:disabled):not(:focus) {
+    transform: none;
+    box-shadow: 8px 8px 0 var(--brutal-ink);
+  }
+}

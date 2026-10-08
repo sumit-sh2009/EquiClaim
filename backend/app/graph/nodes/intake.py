@@ -5,7 +5,8 @@ statements, EOBs), runs each through the pluggable `DocumentParser` tool
 interface (`app/services/document_parser.py`), and normalizes the extracted
 records into cents-exact `ClaimLineItem` / `DenialMapping` domain objects:
 
-  - Dollar amounts are converted to integer cents (`round(dollars * 100)`).
+  - Dollar amounts are converted to integer cents with half-up rounding
+    (`app.domain.money.dollars_to_cents`), never ``round(float * 100)``.
   - Procedure codes are classified into CPT/HCPCS/NDC via
     `app.domain.codes.infer_code_type`.
   - CARC/RARC codes are enriched with human-readable descriptions and a
@@ -22,11 +23,13 @@ from __future__ import annotations
 
 import logging
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from app.domain.carc_rarc import describe_carc, describe_rarc, infer_group_code
 from app.domain.codes import infer_code_type, normalize_code
+from app.domain.money import dollars_to_cents
 from app.graph.state import EquiClaimState
 from app.schemas.claim_line_item import ClaimLineItem
 from app.schemas.denial_mapping import DenialMapping
@@ -41,10 +44,10 @@ from app.services.document_parser import (
 logger = logging.getLogger(__name__)
 
 
-def _cents(dollars: float | None) -> int | None:
-    if dollars is None:
-        return None
-    return round(dollars * 100)
+def _cents(dollars: object) -> int | None:
+    if not isinstance(dollars, (Decimal, str, int, float)) and dollars is not None:
+        raise TypeError(f"money amount must be numeric, got {type(dollars).__name__}")
+    return dollars_to_cents(dollars)
 
 
 def _read_source_text(file_ref: str) -> str:
@@ -59,12 +62,23 @@ def _denial_id(claim_id: str, index: int, carc_code: str) -> str:
     return f"{claim_id}:dn:{index}:{carc_code}"
 
 
+def _fresh_line_item_id(claim_id: str, external_ref: str, taken: dict[str, ClaimLineItem]) -> str:
+    """Keep every bill row. A repeated ref gets ``:2``, ``:3``, … instead of overwriting."""
+    base = _line_item_id(claim_id, external_ref)
+    if base not in taken:
+        return base
+    n = 2
+    while f"{base}:{n}" in taken:
+        n += 1
+    return f"{base}:{n}"
+
+
 def _build_line_item(
-    claim_id: str, raw: RawLineItem, fallback_date: date
+    claim_id: str, raw: RawLineItem, fallback_date: date, *, line_item_id: str
 ) -> ClaimLineItem:
     code = normalize_code(raw.code) if raw.code else None
     return ClaimLineItem(
-        line_item_id=_line_item_id(claim_id, raw.external_ref or (raw.code or "0")),
+        line_item_id=line_item_id,
         claim_id=claim_id,
         description=raw.description,
         cpt_hcpcs_code=code,
@@ -113,7 +127,7 @@ async def intake_forensic_worker(state: EquiClaimState) -> dict[str, Any]:
     for doc in bills:
         try:
             raw_text = _read_source_text(doc.file_ref)
-            parsed: ParsedDocument = get_document_parser(content_type=doc.content_type).parse(
+            parsed: ParsedDocument = get_document_parser(filename=doc.original_filename).parse(
                 raw_text=raw_text, document_type=doc.document_type
             )
         except (OSError, ValueError) as exc:
@@ -121,7 +135,12 @@ async def intake_forensic_worker(state: EquiClaimState) -> dict[str, Any]:
             continue
         errors.extend(parsed.warnings)
         for raw_line in parsed.line_items:
-            item = _build_line_item(claim_id, raw_line, fallback_date)
+            fresh_id = _fresh_line_item_id(
+                claim_id, raw_line.external_ref or (raw_line.code or "0"), line_items
+            )
+            item = _build_line_item(
+                claim_id, raw_line, fallback_date, line_item_id=fresh_id
+            )
             line_items[item.line_item_id] = item
 
     # Pass 2 — EOBs merge allowed/patient-responsibility amounts and emit denials.
@@ -129,7 +148,7 @@ async def intake_forensic_worker(state: EquiClaimState) -> dict[str, Any]:
     for doc in eobs:
         try:
             raw_text = _read_source_text(doc.file_ref)
-            parsed = get_document_parser(content_type=doc.content_type).parse(
+            parsed = get_document_parser(filename=doc.original_filename).parse(
                 raw_text=raw_text, document_type=doc.document_type
             )
         except (OSError, ValueError) as exc:
@@ -145,16 +164,17 @@ async def intake_forensic_worker(state: EquiClaimState) -> dict[str, Any]:
                     f"EOB references unknown line item {raw_line.external_ref!r}; skipping merge."
                 )
                 continue
-            line_items[target_id] = existing.model_copy(
-                update={
-                    "allowed_amount_cents": _cents(raw_line.allowed_amount_dollars)
-                    or existing.allowed_amount_cents,
-                    "patient_responsibility_cents": _cents(
-                        raw_line.patient_responsibility_dollars
-                    )
-                    or existing.patient_responsibility_cents,
-                }
-            )
+            allowed = _cents(raw_line.allowed_amount_dollars)
+            patient = _cents(raw_line.patient_responsibility_dollars)
+            # ``0`` is a real EOB figure. A truthiness check would keep the
+            # bill's previous amount and drop a zero allowed or patient share.
+            update: dict[str, int] = {}
+            if allowed is not None:
+                update["allowed_amount_cents"] = allowed
+            if patient is not None:
+                update["patient_responsibility_cents"] = patient
+            if update:
+                line_items[target_id] = existing.model_copy(update=update)
 
         for raw_denial in parsed.denials:
             line_item_id = _match_line_item_for_denial(raw_denial, line_items, claim_id)

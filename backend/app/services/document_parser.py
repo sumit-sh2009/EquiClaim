@@ -33,6 +33,8 @@ import json
 import re
 from dataclasses import dataclass, field
 from datetime import date
+from decimal import Decimal
+from pathlib import Path
 from typing import Protocol
 
 
@@ -44,9 +46,9 @@ class RawLineItem:
     description: str
     code: str | None
     units: int = 1
-    billed_amount_dollars: float = 0.0
-    allowed_amount_dollars: float | None = None
-    patient_responsibility_dollars: float | None = None
+    billed_amount_dollars: Decimal = Decimal("0")
+    allowed_amount_dollars: Decimal | None = None
+    patient_responsibility_dollars: Decimal | None = None
     service_date: str | None = None
     place_of_service: str | None = None
     is_emergency: bool = False
@@ -61,7 +63,7 @@ class RawDenial:
     carc_code: str
     rarc_code: str | None = None
     group_code: str | None = None
-    adjustment_amount_dollars: float = 0.0
+    adjustment_amount_dollars: Decimal = Decimal("0")
 
 
 @dataclass
@@ -104,7 +106,8 @@ class StructuredJsonDocumentParser:
     """
 
     def parse(self, *, raw_text: str, document_type: str) -> ParsedDocument:
-        payload = json.loads(raw_text)
+        # parse_float keeps JSON numbers out of binary float before cents conversion.
+        payload = json.loads(raw_text, parse_float=Decimal)
         result = ParsedDocument()
 
         for idx, raw in enumerate(payload.get("line_items", [])):
@@ -114,9 +117,9 @@ class StructuredJsonDocumentParser:
                     description=raw.get("description", "Unknown service"),
                     code=raw.get("code"),
                     units=int(raw.get("units", 1)),
-                    billed_amount_dollars=float(raw.get("billed_amount", 0.0)),
-                    allowed_amount_dollars=_maybe_float(raw.get("allowed_amount")),
-                    patient_responsibility_dollars=_maybe_float(
+                    billed_amount_dollars=_money(raw.get("billed_amount", 0)),
+                    allowed_amount_dollars=_maybe_money(raw.get("allowed_amount")),
+                    patient_responsibility_dollars=_maybe_money(
                         raw.get("patient_responsibility")
                     ),
                     service_date=raw.get("service_date"),
@@ -133,15 +136,27 @@ class StructuredJsonDocumentParser:
                     carc_code=str(raw["carc_code"]),
                     rarc_code=raw.get("rarc_code"),
                     group_code=raw.get("group_code"),
-                    adjustment_amount_dollars=float(raw.get("adjustment_amount", 0.0)),
+                    adjustment_amount_dollars=_money(raw.get("adjustment_amount", 0)),
                 )
             )
 
         return result
 
 
-def _maybe_float(value: object) -> float | None:
-    return float(value) if value is not None else None
+def _money(value: object) -> Decimal:
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError(f"money amount must be a decimal number, got {value!r}")
+    return Decimal(value)
+
+
+def _maybe_money(value: object) -> Decimal | None:
+    if value is None:
+        return None
+    return _money(value)
 
 
 class PlaintextLineItemParser:
@@ -178,7 +193,7 @@ class PlaintextLineItemParser:
                             carc_code=match["carc"],
                             rarc_code=match["rarc"],
                             group_code=match["group"],
-                            adjustment_amount_dollars=float(match["amount"].replace(",", "")),
+                            adjustment_amount_dollars=Decimal(match["amount"].replace(",", "")),
                         )
                     )
                     continue
@@ -189,7 +204,7 @@ class PlaintextLineItemParser:
                         external_ref=match["code"],
                         description=match["description"].strip(),
                         code=match["code"],
-                        billed_amount_dollars=float(match["amount"].replace(",", "")),
+                        billed_amount_dollars=Decimal(match["amount"].replace(",", "")),
                         service_date=None,
                     )
                 )
@@ -198,9 +213,9 @@ class PlaintextLineItemParser:
         return result
 
 
-def get_document_parser(*, content_type: str) -> DocumentParser:
-    """Select a parser based on the uploaded document's content type."""
-    if "json" in content_type:
+def get_document_parser(*, filename: str) -> DocumentParser:
+    """Select a parser from the filename suffix. Content-Type is not trusted."""
+    if Path(filename).suffix.lower() == ".json":
         return StructuredJsonDocumentParser()
     return PlaintextLineItemParser()
 

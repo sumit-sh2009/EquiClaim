@@ -23,3 +23,10 @@ backend/data/
 # Editors / OS
 .DS_Store
 *.swp
+
+# Superdesign agent scratch (design spec lives in docs/)
+.superdesign/
+
+# Stray local files
+*.pdf
+!docs/**/*.pdf
