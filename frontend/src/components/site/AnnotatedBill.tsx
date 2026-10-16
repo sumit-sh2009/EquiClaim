@@ -72,23 +72,23 @@ export function AnnotatedBillFigure({
   const drawn = inView ? 'drawn' : undefined
 
   return (
-    <figure ref={ref} className={cn('relative w-full select-none', className)}>
+    <figure ref={ref} className={cn('relative w-full max-w-full select-none overflow-x-clip', className)}>
       <div
         aria-hidden
-        className="pointer-events-none absolute -inset-10 -z-10 rounded-[3rem] bg-[radial-gradient(60%_50%_at_50%_30%,var(--audit-glow),transparent_70%)] animate-lamp blur-2xl"
+        className="pointer-events-none absolute -inset-4 -z-10 rounded-[2rem] bg-[radial-gradient(60%_50%_at_50%_30%,var(--audit-glow),transparent_70%)] animate-lamp blur-2xl sm:-inset-10 sm:rounded-[3rem]"
       />
 
-      <div className="paper relative z-10 overflow-hidden rounded-[32px]">
+      <div className="paper relative z-10 overflow-hidden rounded-2xl sm:rounded-[32px]">
         <BillScan progress={scanProgress} playOnce={!reduceMotion && inView && !scanProgress} />
 
         <div className="absolute left-6 top-0 z-20 rounded-b-xl border-x-2 border-b-2 border-[#09090B] bg-[#D2E823] px-3 py-1 lg:left-8">
           <span className="label-mono text-[0.625rem] text-accent-foreground">Exhibit A</span>
         </div>
 
-        <div className="relative flex items-baseline justify-between gap-4 border-b border-paper-rule inset-x pb-6 pt-10">
-          <div>
+        <div className="relative flex flex-col items-start gap-3 border-b border-paper-rule inset-x pb-5 pt-10 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 sm:pb-6">
+          <div className="min-w-0">
             <p className="label-mono text-paper-muted">Statement of services</p>
-            <p className="flow-sm font-heading text-2xl font-semibold tracking-tight text-paper-ink sm:text-3xl">
+            <p className="flow-sm font-heading text-xl font-semibold tracking-tight text-paper-ink sm:text-3xl">
               Mercy General
             </p>
           </div>
@@ -106,13 +106,13 @@ export function AnnotatedBillFigure({
             <li
               key={line.ref}
               className={cn(
-                'flex items-baseline gap-4 border-b border-dashed border-paper-rule px-2 py-4 transition-opacity duration-300 last:border-0',
+                'grid grid-cols-[1.25rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1 border-b border-dashed border-paper-rule px-1 py-3 transition-opacity duration-300 last:border-0 sm:flex sm:gap-4 sm:px-2 sm:py-4',
                 focus && !lineHot(focus, line.code) && 'opacity-35',
                 focus && lineHot(focus, line.code) && 'bg-accent/50',
               )}
             >
               <span className="w-5 shrink-0 font-mono text-xs text-paper-muted">{line.ref}</span>
-              <span className="min-w-0 flex-1 truncate font-medium text-paper-ink">
+              <span className="min-w-0 font-medium text-pretty text-paper-ink sm:flex-1 sm:truncate">
                 {line.description}
               </span>
               <span className="hidden shrink-0 font-mono text-sm text-paper-muted sm:inline">
@@ -121,7 +121,7 @@ export function AnnotatedBillFigure({
               {line.ref === '1' ? (
                 <span
                   className={cn(
-                    'redline shrink-0 font-mono text-lg font-semibold text-paper-ink',
+                    'redline col-start-2 row-start-2 justify-self-end font-mono text-base font-semibold text-paper-ink sm:col-auto sm:row-auto sm:shrink-0 sm:justify-self-auto sm:text-lg',
                     drawn,
                   )}
                 >
@@ -130,7 +130,7 @@ export function AnnotatedBillFigure({
               ) : (
                 <span
                   className={cn(
-                    'shrink-0 font-mono text-lg font-medium text-paper-ink',
+                    'col-start-2 row-start-2 justify-self-end font-mono text-base font-medium text-paper-ink sm:col-auto sm:row-auto sm:shrink-0 sm:justify-self-auto sm:text-lg',
                     line.ref === '4' && 'text-paper-muted line-through decoration-audit/80',
                   )}
                 >
@@ -183,7 +183,7 @@ export function AnnotatedBillFigure({
 
         <div
           data-totals
-          className="relative flex items-end justify-between gap-4 border-t border-paper-rule inset-x py-6"
+          className="relative flex flex-col items-start gap-4 border-t border-paper-rule inset-x py-5 sm:flex-row sm:items-end sm:justify-between sm:py-6"
         >
           <div className="min-w-0">
             <p className="label-mono text-paper-muted">Total billed</p>
@@ -201,7 +201,7 @@ export function AnnotatedBillFigure({
             <p className="label-mono text-on-paper-emphasis">Disputed</p>
             <Money
               cents={99900}
-              className="flow-sm block font-mono text-3xl font-medium tracking-tight text-on-paper-emphasis sm:text-4xl"
+              className="flow-sm block font-mono text-2xl font-medium tracking-tight text-on-paper-emphasis sm:text-4xl"
             />
           </div>
         </div>

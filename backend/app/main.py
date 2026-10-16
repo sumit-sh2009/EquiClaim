@@ -86,6 +86,8 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allow_origins,
+        # Preview URLs (equiclaim-<hash>-….vercel.app) as well as the production alias.
+        allow_origin_regex=r"https://equiclaim[a-z0-9-]*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-Tenant-Id", "X-Request-Id"],

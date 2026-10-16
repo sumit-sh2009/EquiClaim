@@ -250,7 +250,7 @@ export function LandingPage() {
           {RULEBOOK.map((item) => (
             <article
               key={item.cite}
-              className="flex h-40 w-80 shrink-0 flex-col justify-between rounded-xl border-2 border-border bg-background p-6 text-foreground shadow-[var(--hard)]"
+              className="flex h-36 w-[min(18rem,calc(100vw-3.5rem))] shrink-0 flex-col justify-between rounded-xl border-2 border-border bg-background p-5 text-foreground shadow-[var(--hard)] sm:h-40 sm:w-80 sm:p-6"
             >
               <p className="font-mono text-sm font-medium">{item.cite}</p>
               <h3 className="font-heading text-2xl leading-tight tracking-tighter">{item.name}</h3>
@@ -263,7 +263,7 @@ export function LandingPage() {
         <TextReveal
           id="bento"
           text="What gets checked"
-          className="scroll-mt-28 font-heading text-4xl tracking-tighter text-foreground sm:text-5xl"
+          className="scroll-mt-28 font-heading text-3xl tracking-tighter text-balance text-foreground sm:text-5xl"
         />
         <div className="mt-10 grid gap-4 lg:grid-cols-12">
           <Reveal className="lg:col-span-7 lg:row-span-3">
@@ -275,7 +275,7 @@ export function LandingPage() {
               <p className="relative font-mono text-xs tracking-widest text-primary-foreground uppercase">
                 {ruling.citation}
               </p>
-              <h3 className="relative mt-3 font-heading text-4xl tracking-tighter sm:text-5xl">
+              <h3 className="relative mt-3 font-heading text-3xl tracking-tighter text-balance sm:text-5xl">
                 {ruling.rule}
               </h3>
               <p className="relative mt-4 max-w-md text-base leading-relaxed font-medium opacity-80">
@@ -310,7 +310,7 @@ export function LandingPage() {
         <TextReveal
           id="pipeline"
           text="How the audit runs"
-          className="font-heading text-4xl tracking-tighter text-foreground sm:text-5xl"
+          className="font-heading text-3xl tracking-tighter text-balance text-foreground sm:text-5xl"
         />
         <AuditTrail />
       </section>
@@ -336,7 +336,7 @@ export function LandingPage() {
             <TextReveal
               id="story-title"
               text={STORY.title}
-              className="scroll-mt-28 mt-4 font-heading text-4xl tracking-tighter text-foreground sm:text-5xl"
+              className="scroll-mt-28 mt-4 font-heading text-3xl tracking-tighter text-balance text-foreground sm:text-5xl"
             />
             <p className="mt-6 text-lg leading-relaxed font-medium text-foreground">{STORY.body}</p>
             <p className="mt-8 border-l-2 border-border pl-4 font-heading text-2xl tracking-tighter text-foreground">
@@ -350,7 +350,7 @@ export function LandingPage() {
         <TextReveal
           id="showcase-title"
           text="From the sample statement"
-          className="scroll-mt-28 font-heading text-4xl tracking-tighter text-foreground sm:text-5xl"
+          className="scroll-mt-28 font-heading text-3xl tracking-tighter text-balance text-foreground sm:text-5xl"
         />
         <figure className="mt-10">
           <div className="overflow-hidden rounded-[32px] border-2 border-border bg-card shadow-[var(--hard-lg)]">
@@ -389,7 +389,7 @@ export function LandingPage() {
               <TextReveal
                 id="proof-title"
                 text="What the work sounds like"
-                className="scroll-mt-28 mt-4 font-heading text-4xl tracking-tighter text-foreground sm:text-5xl"
+                className="scroll-mt-28 mt-4 font-heading text-3xl tracking-tighter text-balance text-foreground sm:text-5xl"
               />
               <ul className="mt-10 grid gap-4">
                 {NOTES.map((note, index) => (
@@ -432,7 +432,7 @@ export function LandingPage() {
           <TextReveal
             id="security-title"
             text="What the site actually enforces"
-            className="scroll-mt-28 mt-4 max-w-3xl font-heading text-4xl tracking-tighter text-foreground sm:text-5xl"
+            className="scroll-mt-28 mt-4 max-w-3xl font-heading text-3xl tracking-tighter text-balance text-foreground sm:text-5xl"
           />
           <ul className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-6">
             {SECURITY.map((item, index) => (
@@ -455,18 +455,20 @@ export function LandingPage() {
       <section id="start" className="border-y-2 border-border bg-primary text-primary-foreground" aria-labelledby="start-title">
         <div className="site-container flex flex-col gap-8 py-16 sm:flex-row sm:items-end sm:justify-between lg:py-20">
           <div className="max-w-2xl">
-            <h2 id="start-title" className="font-heading text-4xl tracking-tighter sm:text-6xl">
+            <h2 id="start-title" className="font-heading text-3xl tracking-tighter text-balance sm:text-6xl">
               Put the next bill on the record.
             </h2>
             <p className="mt-4 max-w-lg text-base leading-relaxed font-medium opacity-80">
               Upload a bill and an explanation of benefits. The pipeline prepares the docket and waits for a signature.
             </p>
           </div>
-          <div className="flex flex-wrap gap-4">
-            <HardShadowButton to="/upload" tone="paper">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-4">
+            <HardShadowButton to="/upload" tone="paper" className="w-full sm:w-auto">
               Start an audit
             </HardShadowButton>
-            <HardShadowButton to="/claims">View the ledger</HardShadowButton>
+            <HardShadowButton to="/claims" className="w-full sm:w-auto">
+              View the ledger
+            </HardShadowButton>
           </div>
         </div>
       </section>

@@ -26,21 +26,21 @@ export function DocketSummary({ docket }: { docket: AuditDocket }) {
     docket.total_billed_cents > 0 ? docket.total_disputed_cents / docket.total_billed_cents : 0
 
   return (
-    <div className="paper rounded-2xl border border-paper-rule p-6 sm:p-8">
-      <div className="grid grid-cols-2 gap-6">
-              <div>
+    <div className="paper rounded-2xl border border-paper-rule p-4 sm:p-8">
+      <div className="grid grid-cols-1 gap-6 min-[420px]:grid-cols-2">
+              <div className="min-w-0">
                 <p className="label-mono text-paper-muted">Total billed</p>
                 <AnimatedMoney
                   cents={docket.total_billed_cents}
-                  className="mt-1 block font-mono text-4xl tracking-tight"
+                  className="mt-1 block font-mono text-3xl tracking-tight sm:text-4xl"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="label-mono text-on-paper-emphasis">Total disputed</p>
                 <AnimatedMoney
                   cents={docket.total_disputed_cents}
                   delay={0.3}
-                  className="mt-1 block font-mono text-4xl tracking-tight text-on-paper-emphasis"
+                  className="mt-1 block font-mono text-3xl tracking-tight text-on-paper-emphasis sm:text-4xl"
                 />
               </div>
       </div>
@@ -124,6 +124,48 @@ export function DocketFindings({ docket }: { docket: AuditDocket }) {
 
   return (
     <div>
+      <ul className="flex flex-col gap-3 md:hidden">
+        {disputed.map((finding) => (
+          <li
+            key={finding.line_item.line_item_id}
+            className="rounded-xl border-2 border-border p-4"
+          >
+            <p className="text-sm font-medium text-pretty">{finding.line_item.description}</p>
+            <p className="mt-1 font-mono text-xs text-muted-foreground">
+              {finding.line_item.cpt_hcpcs_code ?? '—'}
+            </p>
+            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="font-mono text-[0.65rem] tracking-wide text-muted-foreground uppercase">
+                  Billed
+                </dt>
+                <dd className="mt-1">
+                  <Money cents={finding.line_item.billed_amount_cents} />
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[0.65rem] tracking-wide text-muted-foreground uppercase">
+                  Disputed
+                </dt>
+                <dd className="mt-1 font-medium text-emphasis">
+                  <Money cents={finding.disputed_amount_cents} />
+                </dd>
+              </div>
+            </dl>
+            {finding.compliance_finding?.citation ? (
+              <p className="mt-3 font-mono text-xs text-muted-foreground">
+                {finding.compliance_finding.citation}
+              </p>
+            ) : null}
+          </li>
+        ))}
+        {disputed.length === 0 && (
+          <li className="py-8 text-center text-sm text-muted-foreground">
+            No disputed line items — every charge reconciled within federal limits.
+          </li>
+        )}
+      </ul>
+      <div className="hidden md:block">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -169,6 +211,7 @@ export function DocketFindings({ docket }: { docket: AuditDocket }) {
           )}
         </TableBody>
       </Table>
+      </div>
       {docket.statutory_citations.length > 0 && (
         <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
           <span className="font-medium text-foreground">Authorities cited:</span>{' '}
@@ -200,9 +243,9 @@ export function CertificationTrail({ docket }: { docket: AuditDocket }) {
           <dt className="text-muted-foreground">Evaluator iterations</dt>
           <dd className="tnum font-medium">{docket.evaluator_certification.iteration_count}</dd>
         </div>
-        <div className="flex justify-between gap-4 border-b border-dashed py-2">
+        <div className="flex flex-col gap-1 border-b border-dashed py-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
           <dt className="text-muted-foreground">Certified</dt>
-          <dd className="font-medium">
+          <dd className="font-medium sm:text-right">
             {new Date(docket.evaluator_certification.certified_at).toLocaleString()}
           </dd>
         </div>

@@ -118,12 +118,12 @@ export function ReviewPanel({ claimId }: { claimId: string }) {
           </Field>
         </FieldGroup>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3">
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <HardShadowButton
             type="button"
             disabled={resume.isPending}
             onClick={() => void requestDecision('APPROVED')}
-            className="hard-shadow-btn--compact"
+            className="hard-shadow-btn--compact w-full sm:w-auto"
           >
             Approve &amp; file dispute
           </HardShadowButton>
@@ -132,7 +132,7 @@ export function ReviewPanel({ claimId }: { claimId: string }) {
             tone="paper"
             disabled={resume.isPending}
             onClick={() => void requestDecision('REJECTED')}
-            className="hard-shadow-btn--compact"
+            className="hard-shadow-btn--compact w-full sm:w-auto"
           >
             Reject
           </HardShadowButton>

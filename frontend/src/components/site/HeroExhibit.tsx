@@ -72,17 +72,17 @@ export function HeroExhibit() {
               hospital’s own published rates, and prepares a dispute docket a human certifies
               before anything is filed.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <HardShadowButton to="/upload" className="min-h-[3.75rem]">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+              <HardShadowButton to="/upload" className="min-h-12 w-full sm:min-h-[3.75rem] sm:w-auto">
                 Start an audit
                 <ArrowRight aria-hidden />
               </HardShadowButton>
-              <HardShadowButton to="/claims" tone="paper" className="min-h-[3.75rem]">
+              <HardShadowButton to="/claims" tone="paper" className="min-h-12 w-full sm:min-h-[3.75rem] sm:w-auto">
                 View the ledger
               </HardShadowButton>
             </div>
 
-            <ol className="mt-10 flex flex-col gap-8">
+            <ol className="mt-10 hidden flex-col gap-8 lg:flex">
               {BEATS.map((beat) => (
                 <li key={beat.id}>
                   <BeatCopy beat={beat} />
@@ -96,6 +96,14 @@ export function HeroExhibit() {
               <AnnotatedBillFigure />
             </ExhibitFrame>
           </div>
+
+          <ol className="flex flex-col gap-8 lg:hidden">
+            {BEATS.map((beat) => (
+              <li key={beat.id}>
+                <BeatCopy beat={beat} className="[&_h2]:text-2xl" />
+              </li>
+            ))}
+          </ol>
         </div>
       </div>
     </section>

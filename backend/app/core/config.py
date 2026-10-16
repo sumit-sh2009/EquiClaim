@@ -47,7 +47,11 @@ class Settings(BaseSettings):
     # --- App ---
     environment: str = Field(default="development")
     cors_allow_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "https://equiclaim.vercel.app",
+        ]
     )
     upload_dir: str = Field(default="./data/uploads")
     upload_max_bytes: int = Field(default=2_000_000, ge=1)

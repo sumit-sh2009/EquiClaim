@@ -16,7 +16,11 @@ export type HardShadowButtonProps = AsLink | AsButton
 /** Tactile neo-brutalist CTA — ink fill, acid type, hard shadow that presses in. */
 export function HardShadowButton(props: HardShadowButtonProps) {
   const { children, className, tone = 'ink' } = props
-  const cls = cn('hard-shadow-btn', tone === 'paper' && 'hard-shadow-btn--paper', className)
+  const cls = cn(
+    'inline-flex max-w-full hard-shadow-btn',
+    tone === 'paper' && 'hard-shadow-btn--paper',
+    className,
+  )
 
   if ('to' in props && props.to !== undefined) {
     const { to, className: _c, children: _ch, tone: _t, ...linkProps } = props

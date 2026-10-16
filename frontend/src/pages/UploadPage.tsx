@@ -229,7 +229,7 @@ export function UploadPage() {
       </header>
 
       <ol
-        className="flow-lg grid grid-cols-3 gap-2 sm:gap-6"
+        className="flow-lg grid grid-cols-3 gap-3"
         aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}
       >
         {STEPS.map((label, i) => (
@@ -237,19 +237,18 @@ export function UploadPage() {
             key={label}
             aria-current={i === step ? 'step' : undefined}
             className={cn(
-              'flex items-baseline gap-2 sm:gap-3 text-sm sm:text-2xl transition-colors',
-              i === step ? 'text-foreground font-medium' : i < step ? 'text-emphasis' : 'text-muted-foreground',
+              'flex min-w-0 flex-col gap-2 border-t-2 pt-3 transition-colors',
+              i === step
+                ? 'border-foreground text-foreground'
+                : i < step
+                  ? 'border-emphasis text-emphasis'
+                  : 'border-border text-muted-foreground',
             )}
           >
-            <span
-              className={cn(
-                'font-mono text-xs sm:text-lg tracking-tight',
-                i === step ? 'text-emphasis font-bold' : i < step ? 'text-emphasis' : undefined,
-              )}
-            >
+            <span className="font-mono text-xs tracking-tight">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <span className="font-heading tracking-tighter truncate">
+            <span className="font-heading text-xs leading-tight tracking-tighter text-balance sm:text-lg">
               {label}
             </span>
           </li>
@@ -262,7 +261,7 @@ export function UploadPage() {
         />
       </div>
 
-      <ExhibitFrame kicker="Intake" className="mt-12 px-6 py-8 sm:px-8">
+      <ExhibitFrame kicker="Intake" className="mt-10 px-4 py-6 sm:mt-12 sm:px-8 sm:py-8">
       <form
         noValidate
         onSubmit={(e) => {
@@ -373,10 +372,10 @@ export function UploadPage() {
                   {DOC_SLOTS.filter((s) => documents?.[s.field] instanceof File).map((s) => (
                     <div
                       key={s.type}
-                      className="flex items-center justify-between gap-4 border-b border-dashed py-3"
+                      className="flex flex-col gap-1 border-b border-dashed py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                     >
                       <dt className="text-muted-foreground">{s.label}</dt>
-                      <dd className="max-w-56 truncate font-medium">
+                      <dd className="min-w-0 truncate font-medium sm:max-w-56">
                         {(documents[s.field] as File).name}
                       </dd>
                     </div>
@@ -385,7 +384,7 @@ export function UploadPage() {
               </section>
             )}
 
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+            <div className="mt-10 flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
               {step > 0 ? (
                 <Button
                   type="button"
@@ -409,7 +408,7 @@ export function UploadPage() {
                 </Button>
               )}
               {step < STEPS.length - 1 ? (
-                <HardShadowButton type="submit" className="ml-auto">
+                <HardShadowButton type="submit" className="w-full sm:ml-auto sm:w-auto">
                   Continue
                   <ArrowRight aria-hidden />
                 </HardShadowButton>
@@ -481,7 +480,7 @@ function FileDropRow({
       <div
         {...getRootProps({
           className: cn(
-            'flex items-center gap-4 border-b border-dashed py-4 transition-colors',
+            'flex flex-col items-stretch gap-3 border-b border-dashed py-4 transition-colors sm:flex-row sm:items-center sm:gap-4',
             isDragActive && 'bg-accent',
           ),
         })}
@@ -532,7 +531,7 @@ function FileDropRow({
               e.stopPropagation()
               open()
             }}
-            className="gap-1.5 rounded-full bg-card"
+            className="w-full gap-1.5 rounded-full bg-card sm:w-auto"
           >
             <FileUp data-icon="inline-start" aria-hidden />
             Choose file
