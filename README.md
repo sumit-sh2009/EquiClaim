@@ -2,7 +2,7 @@
 
 **A forensic audit engine for hospital bills — with a human still in the loop.**
 
-Most people never see the line items behind a six-figure ER bill until it’s too late. EquiClaim is software I built to read an itemized bill and EOB the way an analyst would: reconcile the math, compare charges to the hospital’s published CMS price file, check No Surprises Act and NCCI rules, and only then ask a person to certify what should be disputed. The output is an **Audit Docket** — findings tied to real citations — plus a dispute notice you can actually send.
+Most people never see the line items behind a six-figure ER bill until it’s too late. EquiClaim is software I built to read an itemized bill and EOB the way an analyst would: reconcile the math, link each disputed cent to a source (MRF or denial mapping), and surface statute-cited findings for a reviewer to certify.
 
 This repo is the full stack: typed data contracts, a LangGraph multi-agent pipeline, a FastAPI backend, and a React front end where reviewers sign off before anything is finalized.
 
@@ -60,7 +60,7 @@ A lot of “AI bill checker” demos stop at a chat box. EquiClaim is built like
 | **Automation** | One-shot LLM answer | **LangGraph workers** + an evaluator that **re-verifies** workers before a human sees output |
 | **Control** | Auto-send or auto-deny | **Hard pause** at finalize; status `AWAITING_HUMAN_REVIEW` until someone certifies |
 | **Tenancy** | Shared API key horror | **Per-tenant HMAC keys**, repository-scoped queries, **404** on cross-tenant IDs |
-| **Honesty in UI** | Security buzzwords | Landing **#security** matches headers, upload limits, and tests in `test_security.py` |
+| **Honesty in UI** | Security buzzwords | Landing **#security** matches headers, upload limits, and tests in `backend/tests/test_security.py` |
 
 Under the hood it’s still a web app — but the center of gravity is **deterministic audit logic** (schemas, graph state, SQL), with the UI there to make that logic legible.
 
@@ -93,7 +93,7 @@ The evaluator re-runs mathematical and statutory checks independently of the wor
 - line reconciliation in cents  
 - QPA vs MRF median caps  
 - same-day NCCI modifier-0 pairs  
-- citation allow-list + provenance for every disputed cent  
+- citation allow-list + provenance for every disputed cent
 
 Bounded iterations; then **manual escalation**, not infinite “try again” loops.
 
@@ -171,7 +171,7 @@ The names map directly to graph workers and API responses — there’s no hidde
 
 ## The agent pipeline (LangGraph)
 
-EquiClaim isn’t a single prompt. It’s a **fixed topology** of workers that share one checkpointed state (`EquiClaimState` in Postgres). An actuarial evaluator re-checks math and citations; if something still fails after bounded retries, the run stops at **manual escalation** instead of looping forever.
+EquiClaim isn’t a single prompt. It’s a **fixed topology** of workers that share one checkpointed state (`EquiClaimState` in Postgres). An actuarial evaluator re-checks math and citations; if a defect is found the graph escalates for manual review.
 
 ```mermaid
 flowchart TB
@@ -191,7 +191,7 @@ flowchart TB
     style finalize stroke:#D2E823,stroke-width:3px
 ```
 
-**Human-in-the-loop:** compilation uses `interrupt_before=["finalize_docket"]`. The graph saves a checkpoint, the API returns `AWAITING_HUMAN_REVIEW`, and the UI shows findings and the draft notice. A reviewer approves or rejects; only then does `resume` run finalize and emit the certified docket.
+**Human-in-the-loop:** compilation uses `interrupt_before=["finalize_docket"]`. The graph saves a checkpoint, the API returns `AWAITING_HUMAN_REVIEW`, and the UI shows findings and the draft notice for a reviewer to accept or reject.
 
 ```mermaid
 sequenceDiagram
@@ -267,7 +267,7 @@ Before the human ever sees a docket, the evaluator treats the workers as untrust
 | **Edits** | NCCI modifier-0 PTP pairs on the same date |
 | **Law & provenance** | Citations against an allow-list; every disputed cent traces to MRF or denial mapping |
 
-If the loop exhausts its iteration budget, the claim **fails closed** — it does not auto-certify with a shrug.
+If the loop exhausts its iteration budget, the claim **fails closed** — it does not auto-certify.
 
 ---
 
@@ -320,7 +320,7 @@ docker compose up --build
 | API | http://localhost:8000 (`/healthz`; `/docs` in development only) |
 | App | http://localhost:5173 |
 
-On a fresh DB, development startup seeds sample MRF data for hospital CCN **450123**. The upload page’s **Load sample bill & EOB** uses the same CCN so you can walk through a full audit without manual ingest. Other facilities need an MRF loaded first:
+On a fresh DB, development startup seeds sample MRF data for hospital CCN **450123**. The upload page’s **Load sample bill & EOB** uses the same CCN so you can walk through a full audit without external data.
 
 ```bash
 cd backend && uv run python -m app.ingestion.mrf_ingest --help
@@ -404,9 +404,9 @@ docs/
 
 ## Why I built this
 
-Hospital billing errors aren’t abstract — they show up as surprise balances, denied appeals, and hours on hold. I wanted a project that combined **real regulation** (CMS files, NSA, NCCI), **real software engineering** (typed state, checkpointed agents, tenant-safe APIs), and **real humility** (automation stops; a person certifies). EquiClaim is that experiment, end to end, in one repo you can run, test, and break.
+Hospital billing errors aren’t abstract — they show up as surprise balances, denied appeals, and hours on hold. I wanted a project that combined **real regulation** (CMS files, NSA, NCCI), reproducible audit logic, and a human approval surface so findings are actionable.
 
-If you’re reviewing this for admissions or a portfolio: clone it, start Postgres, hit **Load sample bill & EOB**, and watch the graph pause when it’s your turn to decide. The screenshots above are what you should see on the way there.
+If you’re reviewing this for admissions or a portfolio: clone it, start Postgres, hit **Load sample bill & EOB**, and watch the graph pause when it’s your turn to decide. The screenshots above walk through the product flow.
 
 ---
 
