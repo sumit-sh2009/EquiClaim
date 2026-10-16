@@ -16,17 +16,15 @@ WORKDIR /app
 # Install dependencies first (separate layer) so app-code edits don't bust
 # the dependency cache.
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev
+RUN uv sync --frozen --no-install-project --no-dev
 
 COPY . .
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev
 
-RUN useradd --create-home --uid 1000 equiclaim \
-    && mkdir -p /app/data/uploads \
-    && chown -R equiclaim:equiclaim /app
-USER equiclaim
+RUN mkdir -p /app/data/uploads \
+    && chmod -R a+rX /app
+# Railway and similar hosts run the container under an arbitrary non-root UID.
+# Dropping to a fixed `USER` here breaks venv executables (Permission denied).
 
 EXPOSE 8000
 
@@ -35,4 +33,4 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=5 \
 
 # Migrations run inside the FastAPI lifespan on startup (see app/main.py),
 # so no separate migrate-then-serve entrypoint is required.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -141,7 +141,7 @@ export function LedgerPage() {
             pipeline.
           </p>
         </div>
-        <HardShadowButton to="/upload" className="px-4 py-2 text-xs">
+        <HardShadowButton to="/upload" className="w-full px-4 py-2 text-xs sm:w-auto">
           New audit
         </HardShadowButton>
       </div>
@@ -215,7 +215,40 @@ export function LedgerPage() {
         )}
 
         {rows.length > 0 && (
-          <div className="overflow-hidden">
+          <>
+          <ul className="flex flex-col gap-3 md:hidden">
+            {rows.map((row) => {
+              const claim = row.original
+              return (
+                <li key={claim.claim_id}>
+                  <Link
+                    to={`/claims/${claim.claim_id}`}
+                    className="flex flex-col gap-3 rounded-xl border-2 border-border p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-mono text-sm">{claim.claim_id.slice(0, 8)}</span>
+                      <StatusBadge status={claim.status} />
+                    </div>
+                    <dl className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <dt className="font-mono text-[0.65rem] tracking-wide text-muted-foreground uppercase">
+                          Hospital
+                        </dt>
+                        <dd className="mt-1 font-mono">{claim.hospital_ccn ?? '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-[0.65rem] tracking-wide text-muted-foreground uppercase">
+                          Updated
+                        </dt>
+                        <dd className="mt-1 text-muted-foreground">{relativeTime(claim.updated_at)}</dd>
+                      </div>
+                    </dl>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+          <div className="hidden overflow-hidden md:block">
             <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -274,6 +307,7 @@ export function LedgerPage() {
             </TableBody>
             </Table>
           </div>
+          </>
         )}
       </ExhibitFrame>
     </div>

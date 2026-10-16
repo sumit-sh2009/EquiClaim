@@ -333,11 +333,13 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
+    overflow-x: clip;
   }
   html {
     @apply font-sans scroll-smooth;
     background-color: var(--void);
-    scroll-padding-top: 7rem;
+    scroll-padding-top: 8.5rem;
+    overflow-x: clip;
   }
   h1,
   h2,
@@ -403,7 +405,6 @@
   }
 
   .hard-shadow-btn {
-    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
@@ -515,7 +516,7 @@
   }
 
   .site-container {
-    @apply mx-auto w-full max-w-7xl px-6 lg:px-8;
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
   .section-pad {
     @apply py-16 md:py-20 lg:py-24;
@@ -536,7 +537,7 @@
     @apply p-6 lg:p-8;
   }
   .inset-x {
-    @apply px-6 lg:px-8;
+    @apply px-4 sm:px-6 lg:px-8;
   }
 
   .no-scrollbar {

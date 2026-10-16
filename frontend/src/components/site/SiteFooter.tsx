@@ -102,7 +102,7 @@ export function SiteFooter() {
           />
           <HardShadowButton
             type="submit"
-            className="bg-accent text-accent-foreground shadow-[4px_4px_0_0_var(--accent)] hover:shadow-none"
+            className="w-full bg-accent text-accent-foreground shadow-[4px_4px_0_0_var(--accent)] hover:shadow-none sm:w-auto"
           >
             Write to me
           </HardShadowButton>
