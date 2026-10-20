@@ -103,3 +103,63 @@ async def test_repeated_refs_keep_every_bill_line(tmp_path: Path) -> None:
     billed = sorted(item.billed_amount_cents for item in result["line_items"])
     assert billed == [1_000, 2_000, 3_000]
     assert len({item.line_item_id for item in result["line_items"]}) == 3
+
+
+def test_multi_currency_symbol_stripping_and_parsing() -> None:
+    from app.domain.money import convert_currency, detect_currency, format_money, parse_money
+
+    # Detect currency
+    assert detect_currency("$1,500.00") == "USD"
+    assert detect_currency("€1,200.00") == "EUR"
+    assert detect_currency("£450.50") == "GBP"
+    assert detect_currency("CA$180.00") == "CAD"
+    assert detect_currency("₹2,500.00") == "INR"
+    assert detect_currency("¥15,000") == "JPY"
+    assert detect_currency("100.00 EUR") == "EUR"
+
+    # dollars_to_cents with symbols
+    assert dollars_to_cents("€100.50") == 10050
+    assert dollars_to_cents("£45.00") == 4500
+    assert dollars_to_cents("₹1,250.75") == 125075
+    assert dollars_to_cents("CA$99.99") == 9999
+    assert dollars_to_cents("¥500", currency="JPY") == 500
+
+    # parse_money
+    assert parse_money("€75.50") == (7550, "EUR")
+    assert parse_money("£120.00") == (12000, "GBP")
+    assert parse_money("$500.00") == (50000, "USD")
+    assert parse_money("₹50.00") == (5000, "INR")
+
+    # convert_currency
+    # 100.00 USD (10000 cents) -> EUR at 0.92 = 9200 cents (92.00 EUR)
+    assert convert_currency(10000, "USD", "EUR") == 9200
+    # 100.00 USD -> GBP at 0.79 = 7900 cents (79.00 GBP)
+    assert convert_currency(10000, "USD", "GBP") == 7900
+    # 100.00 USD -> JPY at 155 = 15500 yen
+    assert convert_currency(10000, "USD", "JPY") == 15500
+    # Convert same currency returns identical
+    assert convert_currency(12345, "EUR", "EUR") == 12345
+
+    # format_money
+    assert format_money(125055, "USD") == "$1,250.55"
+    assert format_money(115000, "EUR") == "€1,150.00"
+    assert format_money(98750, "GBP") == "£987.50"
+    assert format_money(15500, "JPY") == "¥15,500"
+    assert format_money(250000, "INR") == "₹2,500.00"
+
+
+def test_plaintext_parser_handles_multi_currency() -> None:
+    from app.services.document_parser import PlaintextLineItemParser
+
+    parser = PlaintextLineItemParser()
+    eur_bill = (
+        "99284  Emergency room visit level 4   €1,250.00\n"
+        "36415  Routine venipuncture   £45.00\n"
+        "71046  Chest X-ray, 2 views   CA$180.00\n"
+    )
+    parsed = parser.parse(raw_text=eur_bill, document_type="BILL")
+    assert len(parsed.line_items) == 3
+    assert parsed.line_items[0].billed_amount_dollars == Decimal("1250.00")
+    assert parsed.line_items[1].billed_amount_dollars == Decimal("45.00")
+    assert parsed.line_items[2].billed_amount_dollars == Decimal("180.00")
+

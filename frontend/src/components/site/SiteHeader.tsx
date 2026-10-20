@@ -2,6 +2,7 @@ import { motion } from 'motion/react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { HardShadowButton } from '@/components/ui/hard-shadow-button'
 import { ThemeToggle } from '@/components/site/ThemeToggle'
+import { CurrencySelector } from '@/components/site/CurrencySelector'
 import { cn } from '@/lib/utils'
 
 const LANDING_LINKS = [
@@ -45,7 +46,10 @@ export function SiteHeader() {
           >
             EQUICLAIM
           </Link>
-          <ThemeToggle className="size-11 sm:hidden" />
+          <div className="flex items-center gap-2 sm:hidden">
+            <CurrencySelector />
+            <ThemeToggle className="size-11" />
+          </div>
         </div>
 
         <nav aria-label="Primary" className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -92,6 +96,7 @@ export function SiteHeader() {
           >
             Ledger
           </NavLink>
+          <CurrencySelector className="hidden sm:inline-flex" />
           <ThemeToggle className="hidden sm:inline-flex" />
           <HardShadowButton to="/upload" className="hidden min-h-11 !px-4 !py-2 text-xs sm:inline-flex">
             New audit

@@ -13,10 +13,10 @@ import { cn } from '@/lib/utils'
 export type BillFocus = 'read' | 'price' | 'cite'
 
 const LINES = [
-  { ref: '1', description: 'Emergency department visit level 4', code: '99284', billed: '$1,500.00' },
-  { ref: '2', description: 'Routine venipuncture', code: '36415', billed: '$45.00' },
-  { ref: '3', description: 'Chest X-ray, 2 views', code: '71046', billed: '$180.00' },
-  { ref: '4', description: 'Chest X-ray, 1 view', code: '71045', billed: '$110.00' },
+  { ref: '1', description: 'Emergency department visit level 4', code: '99284', billedCents: 150000 },
+  { ref: '2', description: 'Routine venipuncture', code: '36415', billedCents: 4500 },
+  { ref: '3', description: 'Chest X-ray, 2 views', code: '71046', billedCents: 18000 },
+  { ref: '4', description: 'Chest X-ray, 1 view', code: '71045', billedCents: 11000 },
 ] as const
 
 function lineHot(focus: BillFocus | undefined, code: string) {
@@ -125,7 +125,7 @@ export function AnnotatedBillFigure({
                     drawn,
                   )}
                 >
-                  {line.billed}
+                  <Money cents={line.billedCents} />
                 </span>
               ) : (
                 <span
@@ -134,7 +134,7 @@ export function AnnotatedBillFigure({
                     line.ref === '4' && 'text-paper-muted line-through decoration-audit/80',
                   )}
                 >
-                  {line.billed}
+                  <Money cents={line.billedCents} />
                 </span>
               )}
             </li>
@@ -151,8 +151,8 @@ export function AnnotatedBillFigure({
             <span aria-hidden className="mt-2 h-px w-5 shrink-0 bg-audit/60" />
             <span>
               <span className="font-mono text-xs font-medium not-italic">99284</span> — patient
-              responsibility $1,180.00 against a $320.00 median. $860.00 sits above the No Surprises
-              Act cap.
+              responsibility <Money cents={118000} /> against a <Money cents={32000} /> median.{' '}
+              <Money cents={86000} /> sits above the No Surprises Act cap.
             </span>
           </p>
           <p
@@ -163,8 +163,9 @@ export function AnnotatedBillFigure({
           >
             <span aria-hidden className="mt-2 h-px w-5 shrink-0 bg-audit/60" />
             <span>
-              <span className="font-mono text-xs font-medium not-italic">36415</span> — $37.00 of
-              patient responsibility against an $8.00 median. $29.00 disputed.
+              <span className="font-mono text-xs font-medium not-italic">36415</span> — <Money cents={3700} /> of
+              patient responsibility against an <Money cents={800} /> median.{' '}
+              <Money cents={2900} /> disputed.
             </span>
           </p>
           <p
@@ -176,7 +177,8 @@ export function AnnotatedBillFigure({
             <span aria-hidden className="mt-2 h-px w-5 shrink-0 bg-audit/60" />
             <span>
               <span className="font-mono text-xs font-medium not-italic">71045</span> — NCCI PTP
-              edit: the single-view X-ray bundles into the two-view study. $110.00 disallowed.
+              edit: the single-view X-ray bundles into the two-view study.{' '}
+              <Money cents={11000} /> disallowed.
             </span>
           </p>
         </div>

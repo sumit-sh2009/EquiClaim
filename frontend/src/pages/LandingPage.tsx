@@ -7,6 +7,7 @@ import { HeroExhibit } from '@/components/site/HeroExhibit'
 import { HardShadowButton } from '@/components/ui/hard-shadow-button'
 import { Marquee } from '@/components/ui/marquee'
 import { Reveal, TextReveal } from '@/components/ui/text-reveal'
+import { Money } from '@/components/Money'
 import { cn } from '@/lib/utils'
 
 const PIPELINE_STEPS = [
@@ -86,17 +87,21 @@ const SHOWCASE = [
   {
     code: '99284',
     title: 'Level-4 emergency visit',
-    detail: 'Billed $1,500.00 · Disputed $860.00 against a $320.00 median.',
+    billedCents: 150000,
+    disputedCents: 86000,
+    medianCents: 32000,
   },
   {
     code: '71045',
     title: 'Single-view chest X-ray',
-    detail: 'Bundled into the two-view study. $110.00 disallowed.',
+    disallowedCents: 11000,
   },
   {
     code: '36415',
     title: 'Routine venipuncture',
-    detail: 'Billed $45.00 · Disputed $29.00 against an $8.00 median.',
+    billedCents: 4500,
+    disputedCents: 2900,
+    medianCents: 800,
   },
 ] as const
 
@@ -373,7 +378,20 @@ export function LandingPage() {
                 <p className="font-heading text-5xl tracking-tighter text-emphasis">{item.code}</p>
                 <div className="mt-10">
                   <h3 className="font-heading text-xl tracking-tighter">{item.title}</h3>
-                  <p className="mt-2 font-mono text-sm text-muted-foreground">{item.detail}</p>
+                  <p className="mt-2 font-mono text-sm text-muted-foreground">
+                    {'disallowedCents' in item ? (
+                      <>
+                        Bundled into the two-view study.{' '}
+                        <Money cents={item.disallowedCents} /> disallowed.
+                      </>
+                    ) : (
+                      <>
+                        Billed <Money cents={item.billedCents} /> · Disputed{' '}
+                        <Money cents={item.disputedCents} /> against a{' '}
+                        <Money cents={item.medianCents} /> median.
+                      </>
+                    )}
+                  </p>
                 </div>
               </article>
             </Reveal>

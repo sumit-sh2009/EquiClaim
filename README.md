@@ -56,7 +56,7 @@ A lot of “AI bill checker” demos stop at a chat box. EquiClaim is built like
 | | Most bill tools | EquiClaim |
 |---|---|---|
 | **Evidence** | Vague “overcharged” flags | Findings tied to **45 CFR § 149**, **NCCI PTP**, and the hospital’s own **CMS MRF** row |
-| **Money** | Floats and rounding drift | **Integer cents** end-to-end; reconciliation checked with zero tolerance |
+| **Money** | Floats and rounding drift | **Integer minor units (cents) & multi-currency** (USD, EUR, GBP, CAD, AUD, INR, JPY, CHF) with zero-tolerance reconciliation |
 | **Automation** | One-shot LLM answer | **LangGraph workers** + an evaluator that **re-verifies** workers before a human sees output |
 | **Control** | Auto-send or auto-deny | **Hard pause** at finalize; status `AWAITING_HUMAN_REVIEW` until someone certifies |
 | **Tenancy** | Shared API key horror | **Per-tenant HMAC keys**, repository-scoped queries, **404** on cross-tenant IDs |
@@ -74,7 +74,7 @@ If you’re skimming for what I actually *did* in code, these are the threads I�
 
 - **Pydantic v2 contracts** for claims, line items, findings, and dockets — `extra="forbid"`, validators on money and citations ([`backend/app/schemas/`](backend/app/schemas/)).
 - **Domain layer** for CPT/HCPCS, NCCI PTP pairing, and citation allow-lists ([`backend/app/domain/`](backend/app/domain/)).
-- **Dedicated money module** — cents-safe arithmetic without floating-point surprises ([`backend/app/domain/money.py`](backend/app/domain/money.py)).
+- **Dedicated multi-currency money module** — cents-safe arithmetic without floating-point surprises across international currencies (USD, EUR, GBP, CAD, AUD, INR, JPY, CHF) with symbol extraction, live conversions, and half-up rounding ([`backend/app/domain/money.py`](backend/app/domain/money.py)).
 
 *Skill:* modeling messy real-world data (healthcare billing) so illegal states are unrepresentable or caught immediately.
 

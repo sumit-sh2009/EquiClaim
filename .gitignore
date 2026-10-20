@@ -27,6 +27,10 @@ backend/data/
 # Superdesign agent scratch (design spec lives in docs/)
 .superdesign/
 
+# Vercel
+.vercel/
+frontend/.vercel/
+
 # Stray local files
 *.pdf
 !docs/**/*.pdf
