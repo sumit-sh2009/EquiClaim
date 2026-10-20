@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { CurrencyProvider } from '@/context/CurrencyContext'
 import App from './App.tsx'
 import './index.css'
 
@@ -26,10 +27,12 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="equiclaim-theme">
         <MotionConfig reducedMotion="user">
           <TooltipProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-            <Toaster closeButton position="bottom-right" />
+            <CurrencyProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+              <Toaster closeButton position="bottom-right" />
+            </CurrencyProvider>
           </TooltipProvider>
         </MotionConfig>
       </ThemeProvider>

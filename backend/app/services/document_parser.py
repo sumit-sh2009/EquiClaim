@@ -148,7 +148,20 @@ def _money(value: object) -> Decimal:
         return Decimal("0")
     if isinstance(value, Decimal):
         return value
-    if isinstance(value, bool) or not isinstance(value, (int, str)):
+    if isinstance(value, str):
+        cleaned = value.strip().replace(",", "")
+        for sym in [
+            "CA$", "AU$", "NZ$", "SG$", "CHF", "USD", "EUR", "GBP", "CAD", "AUD", "INR", "JPY",
+            "$", "€", "£", "¥", "₹",
+        ]:
+            if cleaned.startswith(sym):
+                cleaned = cleaned[len(sym):].strip()
+            if cleaned.upper().endswith(sym):
+                cleaned = cleaned[:-len(sym)].strip()
+        if not cleaned:
+            return Decimal("0")
+        return Decimal(cleaned)
+    if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"money amount must be a decimal number, got {value!r}")
     return Decimal(value)
 
@@ -162,20 +175,22 @@ def _maybe_money(value: object) -> Decimal | None:
 class PlaintextLineItemParser:
     """Regex fallback for plain-text OCR output with no structured schema.
 
-    Bill line format:   ``<code>  <description>  $<amount>``
+    Bill line format:   ``<code>  <description>  [$€£¥₹]<amount>``
         e.g. ``99284  Emergency room visit level 4   $1,250.00``
-    EOB line format:    ``<code>  CARC:<code>  [RARC:<code>]  GROUP:<code>  AMOUNT:$<amount>``
+             ``99284  Emergency room visit level 4   €1,250.00``
+    EOB line format:    ``<code>  CARC:<code>  [RARC:<code>]  GROUP:<code>  AMOUNT:[$€£¥₹]<amount>``
         e.g. ``99284  CARC:45  RARC:N822  GROUP:CO  AMOUNT:$930.00``
     """
 
     _BILL_LINE = re.compile(
-        r"^(?P<code>[A-Za-z0-9]{4,6})\s+(?P<description>.+?)\s+\$(?P<amount>[\d,]+\.\d{2})\s*$"
+        r"^(?P<code>[A-Za-z0-9]{4,6})\s+(?P<description>.+?)\s+"
+        r"(?:CA\$|AU\$|NZ\$|SG\$|CHF|USD|EUR|GBP|CAD|AUD|INR|JPY|[$€£¥₹])?\s*(?P<amount>[\d,]+\.\d{2})\s*$"
     )
     _EOB_LINE = re.compile(
         r"^(?P<code>[A-Za-z0-9]{4,6})\s+CARC:(?P<carc>\S+)"
         r"(?:\s+RARC:(?P<rarc>\S+))?"
         r"\s+GROUP:(?P<group>\S+)"
-        r"\s+AMOUNT:\$(?P<amount>[\d,]+\.\d{2})\s*$"
+        r"\s+AMOUNT:(?:CA\$|AU\$|NZ\$|SG\$|CHF|USD|EUR|GBP|CAD|AUD|INR|JPY|[$€£¥₹])?\s*(?P<amount>[\d,]+\.\d{2})\s*$"
     )
 
     def parse(self, *, raw_text: str, document_type: str) -> ParsedDocument:

@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { AnimatedMoney, Money } from '@/components/Money'
+import { useCurrency } from '@/context/CurrencyContext'
 import {
   Table,
   TableBody,
@@ -22,6 +23,7 @@ import type { AuditDocket, LineItemFinding } from '@/types/api'
  */
 
 export function DocketSummary({ docket }: { docket: AuditDocket }) {
+  const { currency, config } = useCurrency()
   const disputedShare =
     docket.total_billed_cents > 0 ? docket.total_disputed_cents / docket.total_billed_cents : 0
 
@@ -29,14 +31,28 @@ export function DocketSummary({ docket }: { docket: AuditDocket }) {
     <div className="paper rounded-2xl border border-paper-rule p-4 sm:p-8">
       <div className="grid grid-cols-1 gap-6 min-[420px]:grid-cols-2">
               <div className="min-w-0">
-                <p className="label-mono text-paper-muted">Total billed</p>
+                <div className="flex items-center gap-2">
+                  <p className="label-mono text-paper-muted">Total billed</p>
+                  {currency !== 'USD' && (
+                    <span className="rounded bg-accent/40 px-1.5 py-0.5 text-[10px] font-mono text-paper-muted">
+                      {currency}
+                    </span>
+                  )}
+                </div>
                 <AnimatedMoney
                   cents={docket.total_billed_cents}
                   className="mt-1 block font-mono text-3xl tracking-tight sm:text-4xl"
                 />
               </div>
               <div className="min-w-0">
-                <p className="label-mono text-on-paper-emphasis">Total disputed</p>
+                <div className="flex items-center gap-2">
+                  <p className="label-mono text-on-paper-emphasis">Total disputed</p>
+                  {currency !== 'USD' && (
+                    <span className="rounded bg-accent/40 px-1.5 py-0.5 text-[10px] font-mono text-on-paper-emphasis">
+                      {currency}
+                    </span>
+                  )}
+                </div>
                 <AnimatedMoney
                   cents={docket.total_disputed_cents}
                   delay={0.3}
@@ -44,6 +60,11 @@ export function DocketSummary({ docket }: { docket: AuditDocket }) {
                 />
               </div>
       </div>
+      {currency !== 'USD' && (
+        <p className="mt-3 font-mono text-[11px] text-paper-muted">
+          Converted from USD baseline at {config.rateToUsd} {currency}/USD
+        </p>
+      )}
       {/* Disputed share — the one number that sizes the fight */}
       <div
         className="mt-5"
