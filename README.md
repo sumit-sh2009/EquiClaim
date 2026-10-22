@@ -1,3 +1,5 @@
+Check out the app yourself --> https://equiclaim.vercel.app/
+
 # EquiClaim
 
 **A forensic audit engine for hospital bills — with a human still in the loop.**
